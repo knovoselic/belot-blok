@@ -508,19 +508,19 @@ function startNewGame(pref){
 /* ============================ HAND SHEET ============================ */
 function blankHand(){
   const P=S.parties.length;
-  const cards = P===2 ? [81,81] : (P===3?[54,54,54]:[]);
-  // sensible default split for 3p that sums 162
-  if(P===3){ cards[0]=54;cards[1]=54;cards[2]=54; }
-  return { caller:null, cards, decl:Array.from({length:P},()=>({})), bela:null, stiglja:null, zvanjaWinner:null };
+  return { caller:null, cards:Array(P).fill(0), decl:Array.from({length:P},()=>({})), bela:null, stiglja:null, zvanjaWinner:null };
 }
 let declActive = 0; // which party we add declarations to
 
 function openHand(index){
   editing.open=true;
-  if(index==null){ editing.index=null; editing.hand=blankHand(); $('handTitle').textContent='Nova ruka'; $('handDelete').classList.add('hidden'); }
-  else { editing.index=index; editing.hand=JSON.parse(JSON.stringify(S.hands[index])); $('handTitle').textContent='Ruka '+(index+1); $('handDelete').classList.remove('hidden'); }
+  const N=S.parties.length;
+  if(index==null){ editing.index=null; editing.hand=blankHand(); $('handTitle').textContent='Nova ruka'; $('handDelete').classList.add('hidden');
+    editing.text = Array(N).fill(''); editing.order = []; }
+  else { editing.index=index; editing.hand=JSON.parse(JSON.stringify(S.hands[index])); $('handTitle').textContent='Ruka '+(index+1); $('handDelete').classList.remove('hidden');
+    editing.text = editing.hand.cards.map(v=>String(v)); editing.order = [...Array(N-1).keys()]; }
   declActive = editing.hand.caller!=null?editing.hand.caller:0;
-  editing.recent = null; editing.pRefs = [];
+  editing.pRefs = [];
   buildHandUI();
   openSheet('handSheet');
 }
@@ -536,8 +536,8 @@ function buildHandUI(){
 
   // stiglja seg
   const ss=$('stigSeg'); ss.innerHTML='';
-  const none=el('div','opt'+(h.stiglja==null?' on':''),'Bez štiglje'); none.onclick=()=>{ h.stiglja=null; buildPoints(); syncPreview(); buildHandUI(); }; ss.appendChild(none);
-  S.parties.forEach((p,i)=>{ const o=el('div','opt'+(h.stiglja===i?' on':''),'Štiglja: '+p.name); o.onclick=()=>{ h.stiglja=i; const c=Array(P).fill(0); c[i]=162; h.cards=c; buildHandUI(); }; ss.appendChild(o); });
+  const none=el('div','opt'+(h.stiglja==null?' on':''),'Bez štiglje'); none.onclick=()=>{ h.stiglja=null; editing.text=Array(P).fill(''); editing.order=[]; buildHandUI(); }; ss.appendChild(none);
+  S.parties.forEach((p,i)=>{ const o=el('div','opt'+(h.stiglja===i?' on':''),'Štiglja: '+p.name); o.onclick=()=>{ h.stiglja=i; const c=Array(P).fill(0); c[i]=162; h.cards=c; editing.text=c.map(String); editing.order=[...Array(P-1).keys()]; buildHandUI(); }; ss.appendChild(o); });
 
   // declarations who
   const dw=$('declWho'); dw.innerHTML='';
@@ -572,84 +572,63 @@ function buildHandUI(){
   syncPreview();
 }
 
-/* Press-and-hold repeat with acceleration (works for touch + mouse). */
-function holdRepeat(btn, fn){
-  let timer=null, active=false;
-  const tick=(delay)=>{ timer=setTimeout(()=>{ if(!active) return; fn(); tick(Math.max(28, delay-7)); }, delay); };
-  const start=(e)=>{ if(btn.disabled) return; e.preventDefault(); active=true; fn(); tick(330); };
-  const stop=()=>{ active=false; clearTimeout(timer); };
-  btn.addEventListener('pointerdown',start);
-  ['pointerup','pointerleave','pointercancel'].forEach(ev=>btn.addEventListener(ev,stop));
-  return btn;
+/* Points entry: empty boxes, type the number directly. The box you leave
+   untouched auto-fills so the total stays 162. Works for 2 and 3 parties. */
+function pointsAutoIdx(){
+  const N=S.parties.length;
+  if(editing.order.length < N-1) return -1;             // not enough boxes filled yet
+  const manual = editing.order.slice(0, N-1);           // most-recently typed N-1 are manual
+  return [...Array(N).keys()].find(i=>!manual.includes(i));
 }
-function stepBtn(label, disabled){ const b=el('button','stepbtn',label); b.type='button'; if(disabled) b.disabled=true; return b; }
-
-/* 3 players: edit any field; the least-recently-touched field auto-balances to keep sum = 162. */
-function editCards3(i, v){
-  const h=editing.hand;
-  let recent=(editing.recent||[0,1]).slice();
-  let autoIdx=[0,1,2].find(x=>!recent.includes(x));
-  if(i===autoIdx) recent=[i, recent[0]];
-  else recent=[i, recent.find(x=>x!==i)];
-  autoIdx=[0,1,2].find(x=>!recent.includes(x));
-  const other=recent[1];
-  v=clamp(v, 0, 162-h.cards[other]);
-  h.cards[i]=v;
-  h.cards[autoIdx]=clamp(162-h.cards[recent[0]]-h.cards[recent[1]], 0, 162);
-  editing.recent=recent;
-  updatePoints3(); syncPreview();
-}
-function updatePoints3(){
-  const h=editing.hand, refs=editing.pRefs||[];
-  const autoIdx=[0,1,2].find(x=>!(editing.recent||[0,1]).includes(x));
-  refs.forEach((r,i)=>{ if(document.activeElement!==r.inp) r.inp.value=h.cards[i]; r.badge.style.visibility=(i===autoIdx)?'visible':'hidden'; });
-  const sum=h.cards.reduce((a,b)=>a+b,0);
-  $('ptsSum').innerHTML=(h.stiglja!=null)?'štiglja':('zbroj: <b style="color:'+(sum===162?'var(--green)':'var(--red)')+'">'+sum+'</b> / 162');
-}
-
-function buildPoints(){
-  const P=S.parties.length, h=editing.hand, area=$('ptsArea');
-  area.innerHTML=''; editing.pRefs=[];
-  if(P===2){
-    // slider bound to party 0, complement party1; disabled when stiglja set
-    const locked = h.stiglja!=null;
-    const wrap=el('div');
-    const disp=el('div','row spread'); disp.style.marginBottom='8px';
-    disp.innerHTML='<span style="font-weight:800;color:'+CSSACC.A+'">'+esc(S.parties[0].name)+': <span id="pv0">'+h.cards[0]+'</span></span>'+
-                   '<span style="font-weight:800;color:'+CSSACC.B+'">'+esc(S.parties[1].name)+': <span id="pv1">'+h.cards[1]+'</span></span>';
-    wrap.appendChild(disp);
-    const rng=el('input'); rng.type='range'; rng.min=0; rng.max=162; rng.value=h.cards[0]; rng.disabled=locked;
-    rng.oninput=()=>{ setCards2(+rng.value); };
-    wrap.appendChild(rng);
-    const steps=el('div','ptsbox'); steps.style.marginTop='10px';
-    [['−10',-10],['−1',-1]].forEach(([t,v])=>{ steps.appendChild(holdRepeat(stepBtn(t,locked),()=>setCards2(clamp(h.cards[0]+v,0,162)))); });
-    const inp=el('input'); inp.type='number'; inp.inputMode='numeric'; inp.value=h.cards[0]; inp.disabled=locked; inp.style.flex='1';
-    inp.onchange=()=>setCards2(clamp(parseInt(inp.value||0,10),0,162));
-    steps.appendChild(inp);
-    [['+1',1],['+10',10]].forEach(([t,v])=>{ steps.appendChild(holdRepeat(stepBtn(t,locked),()=>setCards2(clamp(h.cards[0]+v,0,162)))); });
-    wrap.appendChild(steps);
-    area.appendChild(wrap);
-    $('ptsSum').textContent = locked ? 'štiglja' : (h.cards[0]+' + '+h.cards[1]+' = 162');
-  } else {
-    // 3 players: edit any two fields, the third auto-balances to 162
-    const locked=h.stiglja!=null;
-    if(!editing.recent) editing.recent=[0,1];
-    S.parties.forEach((p,i)=>{
-      const box=el('div','ptsbox'); box.style.marginBottom='10px';
-      const name=el('span'); name.style.cssText='width:64px;font-weight:800;color:'+CSSACC[ACC[i]]; name.textContent=p.name; box.appendChild(name);
-      const minus=holdRepeat(stepBtn('−',locked),()=>editCards3(i, h.cards[i]-1));
-      const inp=el('input'); inp.type='number'; inp.inputMode='numeric'; inp.value=h.cards[i]; inp.disabled=locked; inp.style.flex='1';
-      inp.onchange=()=>editCards3(i, clamp(parseInt(inp.value||0,10),0,162));
-      const plus=holdRepeat(stepBtn('+',locked),()=>editCards3(i, h.cards[i]+1));
-      const badge=el('span','pill','auto'); badge.style.cssText='background:rgba(231,198,107,.18);color:var(--gold);flex:none;min-width:38px;text-align:center';
-      box.appendChild(minus); box.appendChild(inp); box.appendChild(plus); box.appendChild(badge);
-      editing.pRefs.push({inp,badge}); area.appendChild(box);
-    });
-    updatePoints3();
+function recomputePoints(){
+  const N=S.parties.length, h=editing.hand;
+  const nums = editing.text.map(t=> t===''? null : (parseInt(t,10)||0));
+  const ai = pointsAutoIdx();
+  if(ai>=0){
+    const manual = editing.order.slice(0, N-1);
+    const sumM = manual.reduce((s,i)=>s+(nums[i]||0),0);
+    const auto = 162 - sumM;
+    nums[ai] = (auto>=0 && sumM<=162) ? auto : null;
+    editing.text[ai] = nums[ai]==null ? '' : String(auto);
   }
+  for(let i=0;i<N;i++) h.cards[i] = nums[i]||0;
+  (editing.pRefs||[]).forEach((r,i)=>{
+    if(document.activeElement!==r.inp) r.inp.value = editing.text[i];
+    if(r.badge) r.badge.style.visibility = (i===ai)?'visible':'hidden';
+  });
+  const sum=h.cards.reduce((a,b)=>a+b,0);
+  const col = h.stiglja!=null ? 'var(--muted)' : (pointsValid(h)?'var(--green)':(sum>162?'var(--red)':'var(--muted)'));
+  $('ptsSum').innerHTML = h.stiglja!=null ? 'štiglja' : ('zbroj: <b style="color:'+col+'">'+sum+'</b> / 162');
+  syncPreview();
 }
-function setCards2(v0){ const h=editing.hand; h.cards=[v0,162-v0]; const a=$('pv0'),b=$('pv1'); if(a)a.textContent=h.cards[0]; if(b)b.textContent=h.cards[1]; const r=area2range(); if(r&&+r.value!==v0)r.value=v0; const inp=document.querySelector('#ptsArea input[type=number]'); if(inp)inp.value=v0; $('ptsSum').textContent=(h.stiglja!=null?'štiglja':(h.cards[0]+' + '+h.cards[1]+' = 162')); syncPreview(); }
-function area2range(){ return document.querySelector('#ptsArea input[type=range]'); }
+function onPointsInput(i, val){
+  editing.text[i] = val.replace(/[^0-9]/g,'').slice(0,3);
+  editing.order = [i, ...editing.order.filter(x=>x!==i)];
+  recomputePoints();
+}
+function pointsValid(h){
+  if(h.stiglja!=null) return true;
+  if(editing.text && editing.text.some(t=>t==='')) return false;
+  const sum=h.cards.reduce((a,b)=>a+b,0);
+  return sum===162 && h.cards.every(v=>v>=0 && v<=162);
+}
+function buildPoints(){
+  const N=S.parties.length, h=editing.hand, area=$('ptsArea'), locked=h.stiglja!=null;
+  area.innerHTML=''; editing.pRefs=[];
+  S.parties.forEach((p,i)=>{
+    const box=el('div','ptsbox'); box.style.marginBottom='10px';
+    const name=el('span'); name.style.cssText='width:'+(N===2?'72px':'64px')+';font-weight:800;color:'+CSSACC[ACC[i]]; name.textContent=p.name; box.appendChild(name);
+    const inp=el('input'); inp.type='text'; inp.inputMode='numeric'; inp.pattern='[0-9]*'; inp.placeholder='—';
+    inp.value=editing.text[i]||''; inp.disabled=locked; inp.enterKeyHint='next';
+    inp.style.cssText='flex:1;text-align:center;font-size:24px;font-weight:900;padding:12px';
+    inp.oninput=()=>onPointsInput(i, inp.value);
+    inp.onfocus=()=>setTimeout(()=>inp.select(),0);
+    const badge=el('span','pill','auto'); badge.style.cssText='background:rgba(231,198,107,.18);color:var(--gold);flex:none;min-width:40px;text-align:center;visibility:hidden';
+    box.appendChild(inp); box.appendChild(badge);
+    editing.pRefs.push({inp,badge}); area.appendChild(box);
+  });
+  recomputePoints();
+}
 function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
 
 function syncPreview(){
@@ -671,15 +650,9 @@ function syncPreview(){
   } else {
     box.appendChild(el('div','warn','Odaberi tko je zvao adut da vidiš prolaz/pad.'));
   }
-  // validation for 3p sum
   $('handSave').disabled = !validHand(h);
 }
-function validHand(h){
-  if(h.caller==null) return false;
-  const sum=h.cards.reduce((a,b)=>a+b,0);
-  if(h.stiglja!=null) return true;
-  return sum===162;
-}
+function validHand(h){ return h.caller!=null && pointsValid(h); }
 
 function saveHand(){
   const h=editing.hand;
