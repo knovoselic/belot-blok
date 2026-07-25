@@ -1,0 +1,748 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0d3b2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Belot Blok">
+<title>Belot Blok</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230d3b2e'/%3E%3Ctext x='50' y='40' font-size='34' text-anchor='middle' fill='%23e7c66b'%3E%E2%99%A0%E2%99%A5%3C/text%3E%3Ctext x='50' y='78' font-size='30' font-family='Georgia' font-weight='bold' text-anchor='middle' fill='%23fff'%3EBB%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230d3b2e'/%3E%3Ctext x='50' y='40' font-size='34' text-anchor='middle' fill='%23e7c66b'%3E%E2%99%A0%E2%99%A5%3C/text%3E%3Ctext x='50' y='78' font-size='30' font-family='Georgia' font-weight='bold' text-anchor='middle' fill='%23fff'%3EBB%3C/text%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#07231b; --bg2:#0d3b2e; --panel:#0f4535; --panel2:#12513e;
+    --line:#1d6a52; --ink:#eef7f2; --muted:#9dc3b4; --gold:#e7c66b;
+    --red:#e2564e; --green:#3fbf7f; --blue:#4aa8e0; --danger:#b23b34;
+    --a:#4aa8e0; --b:#e2864e; --c:#b98bd6;
+    --radius:16px; --shadow:0 6px 22px rgba(0,0,0,.35);
+    --safe-b:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    background:radial-gradient(1200px 700px at 50% -10%, var(--bg2), var(--bg)) fixed;
+    color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
+    min-height:100dvh; overscroll-behavior-y:none;
+  }
+  .app{max-width:560px;margin:0 auto;padding:0 14px calc(120px + var(--safe-b));min-height:100dvh}
+  header.top{
+    position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;
+    padding:14px 2px 10px;background:linear-gradient(var(--bg) 70%, transparent);
+  }
+  header.top .logo{font-size:22px}
+  header.top h1{font-size:19px;margin:0;font-weight:800;letter-spacing:.3px;flex:1}
+  header.top h1 small{display:block;font-size:11px;color:var(--muted);font-weight:600;letter-spacing:2px;text-transform:uppercase}
+  .iconbtn{background:var(--panel);border:1px solid var(--line);color:var(--ink);width:40px;height:40px;border-radius:12px;font-size:18px;display:grid;place-items:center;cursor:pointer}
+  .iconbtn:active{transform:scale(.94)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+  .pad{padding:16px}
+  h2.sec{font-size:13px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin:0 0 10px}
+  label.fld{display:block;font-size:12px;color:var(--muted);margin:0 0 6px;font-weight:600}
+  input[type=text],input[type=number]{
+    width:100%;background:var(--bg);border:1px solid var(--line);color:var(--ink);
+    border-radius:12px;padding:13px 14px;font-size:16px;font-weight:600;outline:none;
+  }
+  input:focus{border-color:var(--gold)}
+  .btn{
+    appearance:none;border:1px solid var(--line);background:var(--panel2);color:var(--ink);
+    border-radius:12px;padding:13px 16px;font-size:15px;font-weight:700;cursor:pointer;
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .05s,background .15s;
+  }
+  .btn:active{transform:scale(.97)}
+  .btn.primary{background:linear-gradient(var(--green),#2fa46a);border-color:#2fa46a;color:#04180f}
+  .btn.gold{background:linear-gradient(var(--gold),#d4ad4a);border-color:#d4ad4a;color:#241a00}
+  .btn.ghost{background:transparent}
+  .btn.danger{background:transparent;border-color:var(--danger);color:#ff9c96}
+  .btn.block{width:100%}
+  .btn.lg{padding:16px;font-size:16px}
+  .btn[disabled]{opacity:.4;pointer-events:none}
+  .grid{display:grid;gap:10px}
+  .grid.c2{grid-template-columns:1fr 1fr}
+  .grid.c3{grid-template-columns:1fr 1fr 1fr}
+  .grid.c4{grid-template-columns:1fr 1fr 1fr 1fr}
+  .seg{display:flex;gap:8px;flex-wrap:wrap}
+  .seg .opt{flex:1;min-width:64px;text-align:center;padding:12px 8px;border:1px solid var(--line);border-radius:12px;background:var(--bg);font-weight:700;cursor:pointer;font-size:15px}
+  .seg .opt.on{background:var(--gold);color:#241a00;border-color:var(--gold)}
+  .muted{color:var(--muted)}
+  .small{font-size:12px}
+  .row{display:flex;align-items:center;gap:10px}
+  .spread{justify-content:space-between}
+  .chip{display:inline-flex;align-items:center;gap:6px;padding:8px 11px;border-radius:999px;border:1px solid var(--line);background:var(--bg);font-weight:700;font-size:13px;cursor:pointer}
+  .pill{padding:2px 8px;border-radius:999px;font-size:11px;font-weight:800}
+  .dotA{color:var(--a)} .dotB{color:var(--b)} .dotC{color:var(--c)}
+  .bgA{background:var(--a);color:#04202f} .bgB{background:var(--b);color:#2a1503} .bgC{background:var(--c);color:#241033}
+
+  /* Scoreboard */
+  .board{display:grid;gap:12px;margin-bottom:14px}
+  .teamcard{position:relative;overflow:hidden;padding:14px 16px}
+  .teamcard .tname{font-weight:800;font-size:15px;display:flex;align-items:center;gap:8px}
+  .teamcard .tscore{font-size:40px;font-weight:900;line-height:1;letter-spacing:-1px;margin-top:2px}
+  .teamcard .tsub{font-size:12px;color:var(--muted);margin-top:4px}
+  .prog{height:7px;border-radius:6px;background:rgba(255,255,255,.08);margin-top:10px;overflow:hidden}
+  .prog > i{display:block;height:100%;border-radius:6px;transition:width .4s}
+  .accentA{border-left:4px solid var(--a)} .accentB{border-left:4px solid var(--b)} .accentC{border-left:4px solid var(--c)}
+  .lead{position:absolute;top:10px;right:12px;font-size:11px;font-weight:800;color:var(--gold)}
+
+  /* History */
+  .hist{display:flex;flex-direction:column;gap:8px}
+  .hrow{display:grid;grid-template-columns:26px 1fr auto;gap:10px;align-items:center;padding:11px 13px;border-radius:12px;background:var(--bg);border:1px solid var(--line);cursor:pointer}
+  .hrow .idx{color:var(--muted);font-weight:800;font-size:13px;text-align:center}
+  .hrow .pts{display:flex;gap:10px;font-weight:800;font-variant-numeric:tabular-nums}
+  .hrow .meta{font-size:11px;color:var(--muted);margin-top:2px}
+  .fell{color:#ff9c96}
+  .empty{text-align:center;color:var(--muted);padding:34px 10px}
+
+  /* FAB */
+  .fab{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;justify-content:center;padding:0 14px calc(14px + var(--safe-b));pointer-events:none}
+  .fab .inner{max-width:560px;width:100%;pointer-events:auto}
+
+  /* Modal / sheet */
+  .scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:40;opacity:0;pointer-events:none;transition:opacity .2s;backdrop-filter:blur(2px)}
+  .scrim.on{opacity:1;pointer-events:auto}
+  .sheet{
+    position:fixed;left:0;right:0;bottom:0;z-index:50;max-width:560px;margin:0 auto;
+    background:var(--bg2);border-radius:22px 22px 0 0;border:1px solid var(--line);border-bottom:none;
+    transform:translateY(105%);transition:transform .28s cubic-bezier(.2,.8,.2,1);
+    max-height:94dvh;display:flex;flex-direction:column;
+  }
+  .sheet.on{transform:translateY(0)}
+  .sheet .grab{width:44px;height:5px;border-radius:5px;background:var(--line);margin:10px auto 4px}
+  .sheet .shead{display:flex;align-items:center;gap:10px;padding:6px 16px 10px}
+  .sheet .shead h3{margin:0;font-size:17px;flex:1}
+  .sheet .sbody{overflow-y:auto;padding:4px 16px 16px;-webkit-overflow-scrolling:touch}
+  .sheet .sfoot{padding:12px 16px calc(16px + var(--safe-b));border-top:1px solid var(--line);display:flex;gap:10px;background:var(--bg2)}
+
+  .block-sec{margin-top:18px}
+  .stepbtn{width:44px;height:44px;font-size:22px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-weight:800;display:grid;place-items:center;cursor:pointer;flex:none}
+  .stepbtn:active{transform:scale(.9)}
+  input[type=range]{width:100%;accent-color:var(--gold)}
+  .ptsbox{display:flex;align-items:center;gap:8px}
+  .ptsbox input{text-align:center;font-size:24px;font-weight:900;padding:10px}
+  .previewbox{margin-top:16px;padding:14px;border-radius:14px;background:linear-gradient(160deg,var(--panel2),var(--panel));border:1px solid var(--line)}
+  .pvrow{display:flex;justify-content:space-between;align-items:center;font-weight:800;padding:3px 0}
+  .pvrow .val{font-size:20px;font-variant-numeric:tabular-nums}
+  .verdict{margin-top:8px;font-weight:800;font-size:14px;text-align:center;padding:8px;border-radius:10px}
+  .verdict.ok{background:rgba(63,191,127,.15);color:var(--green)}
+  .verdict.bad{background:rgba(226,86,78,.15);color:#ff9c96}
+  .declchip{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;font-weight:700;font-size:13px;border:1px solid var(--line)}
+  .declchip .x{opacity:.7;font-weight:900}
+  .warn{background:rgba(231,198,107,.13);border:1px solid var(--gold);color:var(--gold);padding:10px 12px;border-radius:12px;font-size:13px;font-weight:600;margin-top:10px}
+
+  .toast{position:fixed;left:50%;bottom:calc(90px + var(--safe-b));transform:translate(-50%,20px);z-index:60;background:#12513e;border:1px solid var(--line);border-radius:12px;padding:11px 14px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:all .25s;max-width:92%}
+  .toast.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+  .toast button{background:var(--gold);border:none;color:#241a00;font-weight:800;border-radius:8px;padding:6px 10px;cursor:pointer}
+  .hidden{display:none!important}
+  a{color:var(--gold)}
+  .rules h4{margin:16px 0 6px;color:var(--gold)}
+  .rules p, .rules li{font-size:14px;line-height:1.5;color:var(--ink)}
+  .rules table{width:100%;border-collapse:collapse;margin:6px 0;font-size:13px}
+  .rules td{border-bottom:1px solid var(--line);padding:6px 4px}
+  .rules td:last-child{text-align:right;font-weight:800;color:var(--gold)}
+  .banner{margin:0 0 14px;padding:16px;border-radius:16px;text-align:center;background:linear-gradient(160deg,#1a6b4f,#0f4535);border:1px solid var(--gold)}
+  .banner .big{font-size:22px;font-weight:900;color:var(--gold)}
+  .switch{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}
+  .switch:last-child{border-bottom:none}
+  .switch .t{font-weight:700;font-size:14px}
+  .switch .d{font-size:12px;color:var(--muted);margin-top:2px}
+  .tgl{width:52px;height:30px;border-radius:999px;background:var(--bg);border:1px solid var(--line);position:relative;flex:none;cursor:pointer;transition:background .2s}
+  .tgl.on{background:var(--green)}
+  .tgl i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:left .2s}
+  .tgl.on i{left:25px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <span class="logo">🂡</span>
+    <h1>Belot Blok<small>rezultati bez greške</small></h1>
+    <button class="iconbtn" id="btnRules" title="Pravila">📖</button>
+    <button class="iconbtn" id="btnMenu" title="Izbornik">⋯</button>
+  </header>
+
+  <!-- SETUP VIEW -->
+  <div id="viewSetup" class="hidden">
+    <div class="card pad">
+      <h2 class="sec">Broj igrača</h2>
+      <div class="seg" id="setMode">
+        <div class="opt" data-m="2">2 igrača</div>
+        <div class="opt" data-m="3">3 igrača</div>
+        <div class="opt on" data-m="4">4 (2 na 2)</div>
+      </div>
+
+      <h2 class="sec block-sec">Imena</h2>
+      <div id="setNames" class="grid"></div>
+
+      <h2 class="sec block-sec">Igra do</h2>
+      <div class="seg" id="setTarget">
+        <div class="opt" data-t="351">351</div>
+        <div class="opt" data-t="501">501</div>
+        <div class="opt on" data-t="701">701</div>
+        <div class="opt" data-t="1001">1001</div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <label class="fld" style="margin:0;flex:none">Vlastito:</label>
+        <input type="number" id="setTargetCustom" inputmode="numeric" placeholder="npr. 1501" style="max-width:140px">
+      </div>
+
+      <h2 class="sec block-sec">Kućna pravila</h2>
+      <div class="switch">
+        <div><div class="t">Bela uvijek vrijedi</div><div class="d">Bela (20) ostaje i kad zvač padne</div></div>
+        <div class="tgl on" id="ruleBela"><i></i></div>
+      </div>
+      <div class="switch">
+        <div><div class="t">Štiglja (svi štihovi)</div><div class="d">Bonus za sve štihove: <span id="stigVal">90</span></div></div>
+        <div class="row" style="gap:6px">
+          <button class="stepbtn" data-stig="-10">−</button>
+          <button class="stepbtn" data-stig="10">+</button>
+        </div>
+      </div>
+    </div>
+    <button class="btn primary block lg" id="btnStart" style="margin-top:14px">▶︎ Započni igru</button>
+    <button class="btn ghost block" id="btnCancelSetup" style="margin-top:10px">Odustani</button>
+  </div>
+
+  <!-- GAME VIEW -->
+  <div id="viewGame" class="hidden">
+    <div id="winBanner"></div>
+    <div class="board" id="board"></div>
+
+    <div class="row spread" style="margin:4px 2px 8px">
+      <h2 class="sec" style="margin:0">Odigrane ruke</h2>
+      <span class="small muted" id="handCount"></span>
+    </div>
+    <div class="hist" id="hist"></div>
+  </div>
+</div>
+
+<!-- FAB -->
+<div class="fab hidden" id="fab"><div class="inner">
+  <button class="btn gold block lg" id="btnNewHand">＋ Nova ruka</button>
+</div></div>
+
+<!-- SCRIM + SHEETS -->
+<div class="scrim" id="scrim"></div>
+
+<!-- Hand entry sheet -->
+<div class="sheet" id="handSheet">
+  <div class="grab"></div>
+  <div class="shead"><h3 id="handTitle">Nova ruka</h3><button class="iconbtn" id="handClose">✕</button></div>
+  <div class="sbody">
+    <h2 class="sec">Tko je zvao adut?</h2>
+    <div class="seg" id="callerSeg"></div>
+
+    <div class="block-sec">
+      <div class="row spread"><h2 class="sec" style="margin:0">Štih bodovi</h2><span class="small muted" id="ptsSum"></span></div>
+      <div id="ptsArea"></div>
+      <div class="seg" id="stigSeg" style="margin-top:10px"></div>
+    </div>
+
+    <div class="block-sec">
+      <h2 class="sec">Zvanja</h2>
+      <div class="row" style="gap:6px;margin-bottom:8px">
+        <span class="small muted">Za:</span>
+        <div class="seg" id="declWho" style="flex:1"></div>
+      </div>
+      <div class="grid c3" id="declBtns"></div>
+      <div id="declList" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div>
+      <div id="declTie" class="warn hidden"></div>
+    </div>
+
+    <div class="block-sec">
+      <h2 class="sec">Bela (kralj + baba aduta, 20)</h2>
+      <div class="seg" id="belaSeg"></div>
+    </div>
+
+    <div class="previewbox" id="preview"></div>
+  </div>
+  <div class="sfoot">
+    <button class="btn danger" id="handDelete">Obriši</button>
+    <button class="btn primary block" id="handSave">Spremi ruku</button>
+  </div>
+</div>
+
+<!-- Menu sheet -->
+<div class="sheet" id="menuSheet">
+  <div class="grab"></div>
+  <div class="shead"><h3>Izbornik</h3><button class="iconbtn" id="menuClose">✕</button></div>
+  <div class="sbody">
+    <button class="btn block lg" id="mNew">🆕 Nova igra</button>
+    <button class="btn block lg" id="mRematch" style="margin-top:10px">🔁 Revanš (isti igrači)</button>
+    <button class="btn block lg" id="mInstall" style="margin-top:10px">📲 Instaliraj aplikaciju</button>
+    <button class="btn block lg" id="mRules2" style="margin-top:10px">📖 Pravila i bodovanje</button>
+    <button class="btn danger block lg" id="mReset" style="margin-top:18px">🗑 Poništi trenutnu igru</button>
+    <p class="small muted" style="margin-top:16px;text-align:center">Belot Blok · radi offline · podaci ostaju na uređaju</p>
+  </div>
+</div>
+
+<!-- Rules sheet -->
+<div class="sheet" id="rulesSheet">
+  <div class="grab"></div>
+  <div class="shead"><h3>Pravila i bodovanje</h3><button class="iconbtn" id="rulesClose">✕</button></div>
+  <div class="sbody rules">
+    <h4>Vrijednost karata</h4>
+    <table>
+      <tr><td>Dečko (adut)</td><td>20</td></tr>
+      <tr><td>Devetka (adut)</td><td>14</td></tr>
+      <tr><td>As</td><td>11</td></tr>
+      <tr><td>Desetka</td><td>10</td></tr>
+      <tr><td>Kralj</td><td>4</td></tr>
+      <tr><td>Baba (dama)</td><td>3</td></tr>
+      <tr><td>Dečko (ne-adut)</td><td>2</td></tr>
+      <tr><td>Devetka (ne-adut), 8, 7</td><td>0</td></tr>
+      <tr><td>Zadnji štih (bonus)</td><td>+10</td></tr>
+    </table>
+    <p class="small muted">Ukupno u jednoj ruci: <b>152 iz karata + 10 zadnji štih = 162 boda</b> (plus zvanja).</p>
+
+    <h4>Zvanja</h4>
+    <table>
+      <tr><td>Bela (kralj+baba aduta)</td><td>20</td></tr>
+      <tr><td>Terca (3 u nizu)</td><td>20</td></tr>
+      <tr><td>Kvarta (4 u nizu)</td><td>50</td></tr>
+      <tr><td>Niz (5+ u nizu)</td><td>100</td></tr>
+      <tr><td>4 iste (as/10/kralj/baba)</td><td>100</td></tr>
+      <tr><td>4 devetke</td><td>150</td></tr>
+      <tr><td>4 dečka</td><td>200</td></tr>
+    </table>
+    <p>Zvanja broji <b>samo tim s najvišim pojedinačnim zvanjem</b> — i to sva svoja zvanja. Protivnik ne broji ništa. <b>Bela (20) uvijek vrijedi</b> za onoga tko je ima. Kod jednakog najvišeg zvanja odlučuje bliži djelitelju (u aplikaciji birate ručno).</p>
+
+    <h4>Prolaz / pad</h4>
+    <p>Tim koji je <b>zvao adut mora skupiti više od polovice</b> svih bodova u ruci (162 + zvanja). Ako ne uspije — <b>pao je</b> — i svi bodovi idu protivniku (bela ostaje, ako je uključeno kućno pravilo).</p>
+
+    <h4>Štiglja (svi štihovi)</h4>
+    <p>Tko odnese svih 8 štihova dobiva bonus (zadano +90) povrh 162.</p>
+    <p class="small muted">Aplikacija sve ovo računa automatski — vi samo unosite štih bodove i zvanja.</p>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"><span id="toastMsg"></span><button id="toastAct" class="hidden"></button></div>
+
+<script>
+"use strict";
+/* ============================ STATE ============================ */
+const LS_KEY = 'belotblok_v1';
+const DECL = { terca:{v:20,l:'Terca',s:'20'}, kvarta:{v:50,l:'Kvarta',s:'50'}, niz:{v:100,l:'Niz 5+',s:'100'},
+  cetiri_iste:{v:100,l:'4 iste',s:'100'}, cetiri_devetke:{v:150,l:'4 devetke',s:'150'}, cetiri_decka:{v:200,l:'4 dečka',s:'200'} };
+const ACC = ['A','B','C'];
+const CSSACC = {A:'var(--a)',B:'var(--b)',C:'var(--c)'};
+
+let S = load();               // persisted game state (or null)
+let setupDraft = null;        // setup view working state
+let editing = { open:false, index:null, hand:null };
+let lastDeleted = null, toastTimer = null;
+let deferredPrompt = null;
+
+function load(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)); }catch(e){ return null; } }
+function save(){ if(S) localStorage.setItem(LS_KEY, JSON.stringify(S)); }
+function $(id){ return document.getElementById(id); }
+function el(t,c,txt){ const e=document.createElement(t); if(c)e.className=c; if(txt!=null)e.textContent=txt; return e; }
+
+/* ============================ SCORING ============================ */
+function computeHand(h, S){
+  const P = S.parties.length;
+  const cards = h.cards.slice();
+  let declSum = Array(P).fill(0), declMax = Array(P).fill(0);
+  for(let i=0;i<P;i++){ const d=h.decl[i]||{}; for(const k in d){ const c=d[k]||0; if(c>0){ declSum[i]+=DECL[k].v*c; declMax[i]=Math.max(declMax[i],DECL[k].v);} } }
+  let countedDecl = Array(P).fill(0), declWinner=null, declTie=false;
+  const anyDecl = declMax.some(v=>v>0);
+  if(anyDecl){
+    const mx = Math.max(...declMax);
+    const cont = []; for(let i=0;i<P;i++) if(declMax[i]===mx) cont.push(i);
+    if(cont.length===1) declWinner=cont[0];
+    else { declTie=true; declWinner = (h.zvanjaWinner!=null && cont.includes(h.zvanjaWinner))?h.zvanjaWinner:cont[0]; }
+    countedDecl[declWinner]=declSum[declWinner];
+  }
+  let bela=Array(P).fill(0); if(h.bela!=null) bela[h.bela]=20;
+  let stig=Array(P).fill(0); if(h.stiglja!=null) stig[h.stiglja]=S.rules.stiglja;
+  let raw=Array(P).fill(0); for(let i=0;i<P;i++) raw[i]=cards[i]+countedDecl[i]+bela[i]+stig[i];
+  let total=raw.reduce((a,b)=>a+b,0);
+  let final=raw.slice(), passed=true;
+  const caller=h.caller;
+  if(caller!=null && total>0){
+    passed = raw[caller] > total/2;
+    if(!passed){
+      const keptBela = S.rules.belaAlways ? bela[caller] : 0;
+      if(P===2){
+        const opp = caller===0?1:0; final=[0,0]; final[caller]=keptBela; final[opp]=total-keptBela;
+      }else{
+        const forfeited = raw[caller]-keptBela; final=raw.slice(); final[caller]=keptBela;
+        const others=[]; for(let i=0;i<P;i++) if(i!==caller) others.push(i);
+        let dealt=0; const share=Math.round(forfeited/others.length);
+        others.forEach((o,ix)=>{ const add = ix===others.length-1 ? forfeited-dealt : share; final[o]=raw[o]+add; dealt+=add; });
+      }
+    }
+  }
+  return {final,passed,total,raw,countedDecl,declSum,declMax,declWinner,declTie,bela,stig,caller};
+}
+function totals(){ const P=S.parties.length; const t=Array(P).fill(0); S.hands.forEach(h=>{ const r=computeHand(h,S); for(let i=0;i<P;i++) t[i]+=r.final[i]; }); return t; }
+function winnerInfo(){
+  const t=totals(); const P=S.parties.length; const over=[];
+  for(let i=0;i<P;i++) if(t[i]>=S.target) over.push(i);
+  if(!over.length) return null;
+  // highest; tie broken by caller of last hand
+  let best=over[0]; for(const i of over) if(t[i]>t[best]) best=i;
+  const tied = over.filter(i=>t[i]===t[best]);
+  if(tied.length>1 && S.hands.length){ const lc=S.hands[S.hands.length-1].caller; if(lc!=null && tied.includes(lc)) best=lc; }
+  return {idx:best, totals:t};
+}
+
+/* ============================ RENDER ============================ */
+function render(){
+  const hasGame = !!S;
+  $('viewSetup').classList.toggle('hidden', !!setupDraft ? false : true);
+  $('viewGame').classList.toggle('hidden', !(hasGame && !setupDraft));
+  $('fab').classList.toggle('hidden', !(hasGame && !setupDraft));
+  if(setupDraft){ renderSetup(); return; }
+  if(!hasGame){ startNewGame(); return; }
+  renderBoard(); renderHist();
+}
+
+function renderBoard(){
+  const t=totals(); const win=winnerInfo();
+  const board=$('board'); board.innerHTML='';
+  // winner banner
+  const wb=$('winBanner'); wb.innerHTML='';
+  if(win){
+    const b=el('div','banner');
+    b.innerHTML='<div class="small muted">POBJEDNIK</div><div class="big">'+esc(S.parties[win.idx].name)+' 🏆</div><div class="small muted" style="margin-top:6px">Dosegnut cilj '+S.target+' bodova</div>';
+    wb.appendChild(b);
+  }
+  S.parties.forEach((p,i)=>{
+    const c=el('div','card teamcard accent'+ACC[i]);
+    const pct=Math.min(100, Math.round(t[i]/S.target*100));
+    const leading = t[i]===Math.max(...t) && t.filter(x=>x===Math.max(...t)).length===1;
+    c.innerHTML =
+      (leading?'<span class="lead">▲ vodi</span>':'')+
+      '<div class="tname"><span class="dot'+ACC[i]+'">●</span>'+esc(p.name)+'</div>'+
+      '<div class="tscore">'+t[i]+'</div>'+
+      '<div class="tsub">do cilja: '+Math.max(0,S.target-t[i])+' · '+pct+'%</div>'+
+      '<div class="prog"><i style="width:'+pct+'%;background:'+CSSACC[ACC[i]]+'"></i></div>';
+    board.appendChild(c);
+  });
+  $('handCount').textContent = S.hands.length ? (S.hands.length+' '+plural(S.hands.length)) : '';
+}
+
+function renderHist(){
+  const wrap=$('hist'); wrap.innerHTML='';
+  if(!S.hands.length){ wrap.innerHTML='<div class="empty">Još nema odigranih ruku.<br>Dodirni <b>＋ Nova ruka</b> za prvi unos.</div>'; return; }
+  S.hands.forEach((h,idx)=>{
+    const r=computeHand(h,S);
+    const row=el('div','hrow');
+    const pts=S.parties.map((p,i)=>'<span style="color:'+CSSACC[ACC[i]]+'">'+r.final[i]+'</span>').join('');
+    const callerName = h.caller!=null ? S.parties[h.caller].name : '—';
+    const extras=[];
+    if(h.bela!=null) extras.push('bela');
+    if(h.stiglja!=null) extras.push('štiglja');
+    if(r.declWinner!=null && r.declSum[r.declWinner]>0) extras.push('zvanja '+r.declSum[r.declWinner]);
+    const verdict = h.caller!=null ? (r.passed?'':' · <span class="fell">pao</span>') : '';
+    row.innerHTML =
+      '<div class="idx">'+(idx+1)+'</div>'+
+      '<div><div class="pts">'+pts+'</div>'+
+        '<div class="meta">📢 '+esc(callerName)+ verdict + (extras.length?' · '+extras.join(' · '):'')+'</div></div>'+
+      '<div class="muted" style="font-size:18px">✎</div>';
+    row.onclick=()=>openHand(idx);
+    wrap.appendChild(row);
+  });
+}
+
+function plural(n){ return (n%10===1&&n%100!==11)?'ruka':((n%10>=2&&n%10<=4&&(n%100<10||n%100>=20))?'ruke':'ruku'); }
+function esc(s){ return (s+'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* ============================ SETUP ============================ */
+function newSetupDraft(){
+  return { mode:4, target:701, names:['Mi','Vi','','',], rules:{belaAlways:true, stiglja:90} };
+}
+function partyCount(mode){ return mode===3?3:2; }
+function defaultNames(mode){
+  if(mode===4) return ['Mi','Vi'];
+  if(mode===2) return ['Igrač 1','Igrač 2'];
+  return ['Igrač 1','Igrač 2','Igrač 3'];
+}
+function renderSetup(){
+  const d=setupDraft;
+  document.querySelectorAll('#setMode .opt').forEach(o=>o.classList.toggle('on', +o.dataset.m===d.mode));
+  // names
+  const n=$('setNames'); n.innerHTML='';
+  const pc=partyCount(d.mode);
+  const labels = d.mode===4?['Tim 1 (npr. Mi)','Tim 2 (npr. Vi)']:Array.from({length:pc},(_,i)=>'Igrač '+(i+1));
+  for(let i=0;i<pc;i++){
+    const w=el('div'); w.innerHTML='<label class="fld">'+labels[i]+'</label>';
+    const inp=el('input'); inp.type='text'; inp.value=d.names[i]||''; inp.maxLength=18;
+    inp.oninput=()=>{ d.names[i]=inp.value; };
+    w.appendChild(inp); n.appendChild(w);
+  }
+  // target
+  const std=[351,501,701,1001];
+  document.querySelectorAll('#setTarget .opt').forEach(o=>o.classList.toggle('on', +o.dataset.t===d.target));
+  $('setTargetCustom').value = std.includes(d.target)?'':d.target;
+  // rules
+  $('ruleBela').classList.toggle('on', d.rules.belaAlways);
+  $('stigVal').textContent=d.rules.stiglja;
+}
+function bindSetup(){
+  document.querySelectorAll('#setMode .opt').forEach(o=>o.onclick=()=>{
+    setupDraft.mode=+o.dataset.m; setupDraft.names=defaultNames(setupDraft.mode); renderSetup();
+  });
+  document.querySelectorAll('#setTarget .opt').forEach(o=>o.onclick=()=>{ setupDraft.target=+o.dataset.t; renderSetup(); });
+  $('setTargetCustom').oninput=e=>{ const v=parseInt(e.target.value,10); if(v>0){ setupDraft.target=v; document.querySelectorAll('#setTarget .opt').forEach(o=>o.classList.remove('on')); } };
+  $('ruleBela').onclick=()=>{ setupDraft.rules.belaAlways=!setupDraft.rules.belaAlways; renderSetup(); };
+  document.querySelectorAll('[data-stig]').forEach(b=>b.onclick=()=>{ setupDraft.rules.stiglja=Math.max(0,setupDraft.rules.stiglja+(+b.dataset.stig)); renderSetup(); });
+  $('btnStart').onclick=()=>{
+    const d=setupDraft, pc=partyCount(d.mode);
+    const parties=[]; for(let i=0;i<pc;i++) parties.push({name:(d.names[i]||'').trim()||('Igrač '+(i+1))});
+    S={ mode:d.mode, target:d.target, rules:{...d.rules}, parties, hands:[], created:Date.now() };
+    setupDraft=null; save(); render(); toast('Igra započeta! Sretno 🍀');
+  };
+  $('btnCancelSetup').onclick=()=>{ setupDraft=null; if(!S){ /* nothing */ } render(); if(!S) startNewGame(); };
+}
+function startNewGame(pref){
+  setupDraft = newSetupDraft();
+  if(pref){ setupDraft.mode=pref.mode; setupDraft.target=pref.target; setupDraft.rules={...pref.rules}; setupDraft.names=pref.parties.map(p=>p.name); }
+  render();
+}
+
+/* ============================ HAND SHEET ============================ */
+function blankHand(){
+  const P=S.parties.length;
+  const cards = P===2 ? [81,81] : (P===3?[54,54,54]:[]);
+  // sensible default split for 3p that sums 162
+  if(P===3){ cards[0]=54;cards[1]=54;cards[2]=54; }
+  return { caller:null, cards, decl:Array.from({length:P},()=>({})), bela:null, stiglja:null, zvanjaWinner:null };
+}
+let declActive = 0; // which party we add declarations to
+
+function openHand(index){
+  editing.open=true;
+  if(index==null){ editing.index=null; editing.hand=blankHand(); $('handTitle').textContent='Nova ruka'; $('handDelete').classList.add('hidden'); }
+  else { editing.index=index; editing.hand=JSON.parse(JSON.stringify(S.hands[index])); $('handTitle').textContent='Ruka '+(index+1); $('handDelete').classList.remove('hidden'); }
+  declActive = editing.hand.caller!=null?editing.hand.caller:0;
+  editing.recent = null; editing.pRefs = [];
+  buildHandUI();
+  openSheet('handSheet');
+}
+
+function buildHandUI(){
+  const P=S.parties.length, h=editing.hand;
+  // caller
+  const cs=$('callerSeg'); cs.innerHTML='';
+  S.parties.forEach((p,i)=>{ const o=el('div','opt'+(h.caller===i?' on':''), p.name); o.onclick=()=>{ h.caller=i; declActive=i; buildHandUI(); }; cs.appendChild(o); });
+
+  // points
+  buildPoints();
+
+  // stiglja seg
+  const ss=$('stigSeg'); ss.innerHTML='';
+  const none=el('div','opt'+(h.stiglja==null?' on':''),'Bez štiglje'); none.onclick=()=>{ h.stiglja=null; buildPoints(); syncPreview(); buildHandUI(); }; ss.appendChild(none);
+  S.parties.forEach((p,i)=>{ const o=el('div','opt'+(h.stiglja===i?' on':''),'Štiglja: '+p.name); o.onclick=()=>{ h.stiglja=i; const c=Array(P).fill(0); c[i]=162; h.cards=c; buildHandUI(); }; ss.appendChild(o); });
+
+  // declarations who
+  const dw=$('declWho'); dw.innerHTML='';
+  S.parties.forEach((p,i)=>{ const o=el('div','opt'+(declActive===i?' on':''),p.name); o.onclick=()=>{ declActive=i; buildHandUI(); }; dw.appendChild(o); });
+  // decl buttons
+  const db=$('declBtns'); db.innerHTML='';
+  Object.keys(DECL).forEach(k=>{ const b=el('button','btn ghost'); b.innerHTML=DECL[k].l+'<br><span class="small muted">'+DECL[k].s+'</span>'; b.style.flexDirection='column'; b.style.lineHeight='1.2'; b.onclick=()=>{ h.decl[declActive][k]=(h.decl[declActive][k]||0)+1; buildHandUI(); }; db.appendChild(b); });
+  // decl list
+  const dl=$('declList'); dl.innerHTML='';
+  let anyDecl=false;
+  S.parties.forEach((p,i)=>{ const d=h.decl[i]; Object.keys(d).forEach(k=>{ for(let c=0;c<d[k];c++){ anyDecl=true; const chip=el('span','declchip'); chip.style.borderColor=CSSACC[ACC[i]]; chip.innerHTML='<span class="dot'+ACC[i]+'">●</span>'+DECL[k].l+' '+DECL[k].s+' <span class="x">✕</span>'; chip.onclick=()=>{ h.decl[i][k]--; if(h.decl[i][k]<=0) delete h.decl[i][k]; buildHandUI(); }; dl.appendChild(chip); } }); });
+  if(!anyDecl) dl.innerHTML='<span class="small muted">Nema zvanja. Dodirni gumb iznad za dodavanje.</span>';
+
+  // tie resolver
+  const r=computeHand(h,S);
+  const tie=$('declTie');
+  if(r.declTie){
+    tie.classList.remove('hidden');
+    tie.innerHTML='⚖︎ Jednako najviše zvanje — tko broji? ';
+    const seg=el('span');
+    // find contenders
+    const mx=Math.max(...r.declMax);
+    S.parties.forEach((p,i)=>{ if(r.declMax[i]===mx){ const b=el('span','chip'); b.style.margin='4px 4px 0'; b.textContent=p.name; if((h.zvanjaWinner==null?r.declWinner:h.zvanjaWinner)===i){ b.style.background=CSSACC[ACC[i]]; b.style.color='#04202f'; } b.onclick=()=>{ h.zvanjaWinner=i; buildHandUI(); }; seg.appendChild(b); } });
+    tie.appendChild(seg);
+  } else { tie.classList.add('hidden'); h.zvanjaWinner=null; }
+
+  // bela
+  const bs=$('belaSeg'); bs.innerHTML='';
+  const bn=el('div','opt'+(h.bela==null?' on':''),'Nitko'); bn.onclick=()=>{ h.bela=null; buildHandUI(); }; bs.appendChild(bn);
+  S.parties.forEach((p,i)=>{ const o=el('div','opt'+(h.bela===i?' on':''),p.name); o.onclick=()=>{ h.bela=i; buildHandUI(); }; bs.appendChild(o); });
+
+  syncPreview();
+}
+
+/* Press-and-hold repeat with acceleration (works for touch + mouse). */
+function holdRepeat(btn, fn){
+  let timer=null, active=false;
+  const tick=(delay)=>{ timer=setTimeout(()=>{ if(!active) return; fn(); tick(Math.max(28, delay-7)); }, delay); };
+  const start=(e)=>{ if(btn.disabled) return; e.preventDefault(); active=true; fn(); tick(330); };
+  const stop=()=>{ active=false; clearTimeout(timer); };
+  btn.addEventListener('pointerdown',start);
+  ['pointerup','pointerleave','pointercancel'].forEach(ev=>btn.addEventListener(ev,stop));
+  return btn;
+}
+function stepBtn(label, disabled){ const b=el('button','stepbtn',label); b.type='button'; if(disabled) b.disabled=true; return b; }
+
+/* 3 players: edit any field; the least-recently-touched field auto-balances to keep sum = 162. */
+function editCards3(i, v){
+  const h=editing.hand;
+  let recent=(editing.recent||[0,1]).slice();
+  let autoIdx=[0,1,2].find(x=>!recent.includes(x));
+  if(i===autoIdx) recent=[i, recent[0]];
+  else recent=[i, recent.find(x=>x!==i)];
+  autoIdx=[0,1,2].find(x=>!recent.includes(x));
+  const other=recent[1];
+  v=clamp(v, 0, 162-h.cards[other]);
+  h.cards[i]=v;
+  h.cards[autoIdx]=clamp(162-h.cards[recent[0]]-h.cards[recent[1]], 0, 162);
+  editing.recent=recent;
+  updatePoints3(); syncPreview();
+}
+function updatePoints3(){
+  const h=editing.hand, refs=editing.pRefs||[];
+  const autoIdx=[0,1,2].find(x=>!(editing.recent||[0,1]).includes(x));
+  refs.forEach((r,i)=>{ if(document.activeElement!==r.inp) r.inp.value=h.cards[i]; r.badge.style.visibility=(i===autoIdx)?'visible':'hidden'; });
+  const sum=h.cards.reduce((a,b)=>a+b,0);
+  $('ptsSum').innerHTML=(h.stiglja!=null)?'štiglja':('zbroj: <b style="color:'+(sum===162?'var(--green)':'var(--red)')+'">'+sum+'</b> / 162');
+}
+
+function buildPoints(){
+  const P=S.parties.length, h=editing.hand, area=$('ptsArea');
+  area.innerHTML=''; editing.pRefs=[];
+  if(P===2){
+    // slider bound to party 0, complement party1; disabled when stiglja set
+    const locked = h.stiglja!=null;
+    const wrap=el('div');
+    const disp=el('div','row spread'); disp.style.marginBottom='8px';
+    disp.innerHTML='<span style="font-weight:800;color:'+CSSACC.A+'">'+esc(S.parties[0].name)+': <span id="pv0">'+h.cards[0]+'</span></span>'+
+                   '<span style="font-weight:800;color:'+CSSACC.B+'">'+esc(S.parties[1].name)+': <span id="pv1">'+h.cards[1]+'</span></span>';
+    wrap.appendChild(disp);
+    const rng=el('input'); rng.type='range'; rng.min=0; rng.max=162; rng.value=h.cards[0]; rng.disabled=locked;
+    rng.oninput=()=>{ setCards2(+rng.value); };
+    wrap.appendChild(rng);
+    const steps=el('div','ptsbox'); steps.style.marginTop='10px';
+    [['−10',-10],['−1',-1]].forEach(([t,v])=>{ steps.appendChild(holdRepeat(stepBtn(t,locked),()=>setCards2(clamp(h.cards[0]+v,0,162)))); });
+    const inp=el('input'); inp.type='number'; inp.inputMode='numeric'; inp.value=h.cards[0]; inp.disabled=locked; inp.style.flex='1';
+    inp.onchange=()=>setCards2(clamp(parseInt(inp.value||0,10),0,162));
+    steps.appendChild(inp);
+    [['+1',1],['+10',10]].forEach(([t,v])=>{ steps.appendChild(holdRepeat(stepBtn(t,locked),()=>setCards2(clamp(h.cards[0]+v,0,162)))); });
+    wrap.appendChild(steps);
+    area.appendChild(wrap);
+    $('ptsSum').textContent = locked ? 'štiglja' : (h.cards[0]+' + '+h.cards[1]+' = 162');
+  } else {
+    // 3 players: edit any two fields, the third auto-balances to 162
+    const locked=h.stiglja!=null;
+    if(!editing.recent) editing.recent=[0,1];
+    S.parties.forEach((p,i)=>{
+      const box=el('div','ptsbox'); box.style.marginBottom='10px';
+      const name=el('span'); name.style.cssText='width:64px;font-weight:800;color:'+CSSACC[ACC[i]]; name.textContent=p.name; box.appendChild(name);
+      const minus=holdRepeat(stepBtn('−',locked),()=>editCards3(i, h.cards[i]-1));
+      const inp=el('input'); inp.type='number'; inp.inputMode='numeric'; inp.value=h.cards[i]; inp.disabled=locked; inp.style.flex='1';
+      inp.onchange=()=>editCards3(i, clamp(parseInt(inp.value||0,10),0,162));
+      const plus=holdRepeat(stepBtn('+',locked),()=>editCards3(i, h.cards[i]+1));
+      const badge=el('span','pill','auto'); badge.style.cssText='background:rgba(231,198,107,.18);color:var(--gold);flex:none;min-width:38px;text-align:center';
+      box.appendChild(minus); box.appendChild(inp); box.appendChild(plus); box.appendChild(badge);
+      editing.pRefs.push({inp,badge}); area.appendChild(box);
+    });
+    updatePoints3();
+  }
+}
+function setCards2(v0){ const h=editing.hand; h.cards=[v0,162-v0]; const a=$('pv0'),b=$('pv1'); if(a)a.textContent=h.cards[0]; if(b)b.textContent=h.cards[1]; const r=area2range(); if(r&&+r.value!==v0)r.value=v0; const inp=document.querySelector('#ptsArea input[type=number]'); if(inp)inp.value=v0; $('ptsSum').textContent=(h.stiglja!=null?'štiglja':(h.cards[0]+' + '+h.cards[1]+' = 162')); syncPreview(); }
+function area2range(){ return document.querySelector('#ptsArea input[type=range]'); }
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+
+function syncPreview(){
+  const h=editing.hand, P=S.parties.length, r=computeHand(h,S);
+  const box=$('preview'); box.innerHTML='';
+  const title=el('div','small muted','Rezultat ove ruke'); box.appendChild(title);
+  S.parties.forEach((p,i)=>{
+    const row=el('div','pvrow');
+    const isCaller = h.caller===i;
+    row.innerHTML='<span><span class="dot'+ACC[i]+'">●</span> '+esc(p.name)+(isCaller?' <span class="pill" style="background:rgba(231,198,107,.2);color:var(--gold)">📢 zvao</span>':'')+'</span>'+
+                  '<span class="val" style="color:'+CSSACC[ACC[i]]+'">+'+r.final[i]+'</span>';
+    box.appendChild(row);
+  });
+  if(h.caller!=null){
+    const v=el('div','verdict '+(r.passed?'ok':'bad'));
+    v.textContent = r.passed ? '✓ '+S.parties[h.caller].name+' prolazi ('+r.raw[h.caller]+' od '+r.total+')'
+                             : '✗ '+S.parties[h.caller].name+' pada ('+r.raw[h.caller]+' od '+r.total+', treba >'+Math.floor(r.total/2)+')';
+    box.appendChild(v);
+  } else {
+    box.appendChild(el('div','warn','Odaberi tko je zvao adut da vidiš prolaz/pad.'));
+  }
+  // validation for 3p sum
+  $('handSave').disabled = !validHand(h);
+}
+function validHand(h){
+  if(h.caller==null) return false;
+  const sum=h.cards.reduce((a,b)=>a+b,0);
+  if(h.stiglja!=null) return true;
+  return sum===162;
+}
+
+function saveHand(){
+  const h=editing.hand;
+  if(!validHand(h)){ toast('Zbroj štih bodova mora biti 162'); return; }
+  if(editing.index==null) S.hands.push(h); else S.hands[editing.index]=h;
+  save(); closeSheet(); render();
+  toast(editing.index==null?'Ruka dodana':'Ruka spremljena');
+}
+function deleteHand(){
+  if(editing.index==null){ closeSheet(); return; }
+  lastDeleted={index:editing.index, hand:S.hands[editing.index]};
+  S.hands.splice(editing.index,1); save(); closeSheet(); render();
+  toast('Ruka obrisana', 'Poništi', ()=>{ S.hands.splice(lastDeleted.index,0,lastDeleted.hand); save(); render(); });
+}
+
+/* ============================ SHEETS / UI PLUMBING ============================ */
+let openSheetId=null;
+function openSheet(id){ openSheetId=id; $('scrim').classList.add('on'); $(id).classList.add('on'); }
+function closeSheet(){ if(openSheetId){ $(openSheetId).classList.remove('on'); } $('scrim').classList.remove('on'); openSheetId=null; editing.open=false; }
+$('scrim').onclick=closeSheet;
+
+function toast(msg,actLabel,actFn){
+  clearTimeout(toastTimer);
+  $('toastMsg').textContent=msg;
+  const b=$('toastAct');
+  if(actLabel){ b.textContent=actLabel; b.classList.remove('hidden'); b.onclick=()=>{ actFn&&actFn(); hideToast(); }; }
+  else b.classList.add('hidden');
+  $('toast').classList.add('on');
+  toastTimer=setTimeout(hideToast, actLabel?6000:2400);
+}
+function hideToast(){ $('toast').classList.remove('on'); }
+
+/* ============================ EVENTS ============================ */
+$('btnNewHand').onclick=()=>openHand(null);
+$('handClose').onclick=closeSheet;
+$('handSave').onclick=saveHand;
+$('handDelete').onclick=deleteHand;
+
+$('btnMenu').onclick=()=>openSheet('menuSheet');
+$('menuClose').onclick=closeSheet;
+$('btnRules').onclick=()=>openSheet('rulesSheet');
+$('rulesClose').onclick=closeSheet;
+$('mRules2').onclick=()=>{ closeSheet(); setTimeout(()=>openSheet('rulesSheet'),260); };
+
+$('mNew').onclick=()=>{ closeSheet(); startNewGame(); };
+$('mRematch').onclick=()=>{ const pref=S?{mode:S.mode,target:S.target,rules:S.rules,parties:S.parties}:null; closeSheet(); startNewGame(pref); };
+$('mReset').onclick=()=>{ if(confirm('Poništiti trenutnu igru i sve unesene ruke?')){ localStorage.removeItem(LS_KEY); S=null; closeSheet(); startNewGame(); toast('Igra poništena'); } };
+$('mInstall').onclick=async()=>{ closeSheet(); if(deferredPrompt){ deferredPrompt.prompt(); const {outcome}=await deferredPrompt.userChoice; deferredPrompt=null; if(outcome!=='accepted') toast('Instalaciju možeš pokrenuti kasnije iz izbornika'); } else { toast('Otvori u Chrome/Safari izborniku: "Dodaj na početni zaslon"'); } };
+
+window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); deferredPrompt=e; });
+
+/* ============================ PWA MANIFEST (runtime, single-file) ============================ */
+(function(){
+  const icon = "data:image/svg+xml,"+encodeURIComponent(
+    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='112' fill='#0d3b2e'/><text x='256' y='210' font-size='150' text-anchor='middle' fill='#e7c66b'>♠♥</text><text x='256' y='400' font-size='150' font-family='Georgia' font-weight='bold' text-anchor='middle' fill='#ffffff'>BB</text></svg>");
+  const manifest = { name:'Belot Blok', short_name:'Belot', description:'Blok za belot — bodovi i zvanja bez greške.',
+    start_url:'.', scope:'.', display:'standalone', orientation:'portrait', background_color:'#07231b', theme_color:'#0d3b2e',
+    icons:[{src:icon,sizes:'192x192',type:'image/svg+xml',purpose:'any maskable'},{src:icon,sizes:'512x512',type:'image/svg+xml',purpose:'any maskable'}] };
+  try{ const blob=new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'});
+    const link=document.createElement('link'); link.rel='manifest'; link.href=URL.createObjectURL(blob); document.head.appendChild(link);
+  }catch(e){}
+})();
+
+bindSetup();
+render();
+</script>
+</body>
+</html>
