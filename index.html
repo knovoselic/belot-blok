@@ -95,6 +95,12 @@
   .hrow .meta{font-size:11px;color:var(--muted);margin-top:2px}
   .fell{color:#ff9c96}
   .empty{text-align:center;color:var(--muted);padding:34px 10px}
+  .dealerbar{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:14px;background:var(--panel);border:1px solid var(--line);margin:2px 0 14px;cursor:pointer}
+  .dealerbar .ic{font-size:20px}
+  .dealerbar .who{font-weight:800;font-size:15px}
+  .dealerbar .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;font-weight:700}
+  .dealerbar .nxt{margin-left:auto;text-align:right;font-size:12px;color:var(--muted)}
+  .dealerbar .edit{color:var(--muted);font-size:16px}
 
   /* FAB */
   .fab{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;justify-content:center;padding:0 14px calc(14px + var(--safe-b));pointer-events:none}
@@ -176,6 +182,11 @@
       <h2 class="sec block-sec">Imena</h2>
       <div id="setNames" class="grid"></div>
 
+      <h2 class="sec block-sec">Dijeljenje karata</h2>
+      <div id="setSeats" class="grid"></div>
+      <label class="fld" id="setFirstDealerLbl" style="margin-top:10px">Prvi dijeli</label>
+      <div class="seg" id="setFirstDealer" style="flex-wrap:wrap"></div>
+
       <h2 class="sec block-sec">Igra do</h2>
       <div class="seg" id="setTarget">
         <div class="opt" data-t="351">351</div>
@@ -209,6 +220,7 @@
   <div id="viewGame" class="hidden">
     <div id="winBanner"></div>
     <div class="board" id="board"></div>
+    <div id="dealerBar"></div>
 
     <div class="row spread" style="margin:4px 2px 8px">
       <h2 class="sec" style="margin:0">Odigrane ruke</h2>
@@ -318,6 +330,17 @@
   </div>
 </div>
 
+<!-- Dealer chooser sheet -->
+<div class="sheet" id="dealerSheet">
+  <div class="grab"></div>
+  <div class="shead"><h3>Tko dijeli?</h3><button class="iconbtn" id="dealerClose">✕</button></div>
+  <div class="sbody">
+    <p class="small muted" style="margin-top:0">Postavi trenutnog djelitelja. Sljedeće ruke idu automatski u krug.</p>
+    <button class="btn gold block lg" id="dealerRandom">🎲 Nasumično</button>
+    <div class="seg" id="dealerPick" style="flex-wrap:wrap;margin-top:12px"></div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"><span id="toastMsg"></span><button id="toastAct" class="hidden"></button></div>
 
@@ -379,6 +402,20 @@ function computeHand(h, S){
   return {final,passed,total,raw,countedDecl,declSum,declMax,declWinner,declTie,bela,stig,caller};
 }
 function totals(){ const P=S.parties.length; const t=Array(P).fill(0); S.hands.forEach(h=>{ const r=computeHand(h,S); for(let i=0;i<P;i++) t[i]+=r.final[i]; }); return t; }
+
+/* Dealer tracking: seats rotate one player per hand. seatTeam maps a seat to its party (for colour). */
+function ensureDealer(){
+  if(!S) return;
+  if(!Array.isArray(S.seats) || !S.seats.length){
+    S.seats = (S.mode===4) ? [S.parties[0].name+' ①', S.parties[1].name+' ①', S.parties[0].name+' ②', S.parties[1].name+' ②']
+                           : S.parties.map(p=>p.name);
+  }
+  if(typeof S.firstDealer!=='number') S.firstDealer=0;
+}
+function seatTeam(i){ return S.mode===4 ? (i%2) : i; }           // which party owns seat i
+function dealerIdxForHand(n){ const k=S.seats.length; return ((S.firstDealer||0)+n)%k; }  // dealer of hand #n (0-based)
+function currentDealerIdx(){ return dealerIdxForHand(S.hands.length); }                     // upcoming hand's dealer
+function setCurrentDealer(seatIdx){ const k=S.seats.length; S.firstDealer=((seatIdx-S.hands.length)%k+k)%k; save(); }
 function winnerInfo(){
   const t=totals(); const P=S.parties.length; const over=[];
   for(let i=0;i<P;i++) if(t[i]>=S.target) over.push(i);
@@ -398,7 +435,22 @@ function render(){
   $('fab').classList.toggle('hidden', !(hasGame && !setupDraft));
   if(setupDraft){ renderSetup(); return; }
   if(!hasGame){ startNewGame(); return; }
-  renderBoard(); renderHist();
+  ensureDealer();
+  renderBoard(); renderDealer(); renderHist();
+}
+
+function renderDealer(){
+  const bar=$('dealerBar'); bar.innerHTML='';
+  if(!S.seats || S.seats.length<2) return;
+  const di=currentDealerIdx(), ni=dealerIdxForHand(S.hands.length+1);
+  const d=el('div','dealerbar');
+  d.innerHTML =
+    '<span class="ic">🃏</span>'+
+    '<div><div class="lbl">Dijeli</div><div class="who" style="color:'+CSSACC[ACC[seatTeam(di)]]+'">'+esc(S.seats[di])+'</div></div>'+
+    '<div class="nxt">sljedeći<br><b style="color:'+CSSACC[ACC[seatTeam(ni)]]+'">'+esc(S.seats[ni])+'</b></div>'+
+    '<span class="edit">✎</span>';
+  d.onclick=openDealer;
+  bar.appendChild(d);
 }
 
 function renderBoard(){
@@ -429,7 +481,8 @@ function renderBoard(){
 function renderHist(){
   const wrap=$('hist'); wrap.innerHTML='';
   if(!S.hands.length){ wrap.innerHTML='<div class="empty">Još nema odigranih ruku.<br>Dodirni <b>＋ Nova ruka</b> za prvi unos.</div>'; return; }
-  S.hands.forEach((h,idx)=>{
+  for(let idx=S.hands.length-1; idx>=0; idx--){   // newest first
+    const h=S.hands[idx];
     const r=computeHand(h,S);
     const row=el('div','hrow');
     const pts=S.parties.map((p,i)=>'<span style="color:'+CSSACC[ACC[i]]+'">'+r.final[i]+'</span>').join('');
@@ -446,7 +499,7 @@ function renderHist(){
       '<div class="muted" style="font-size:18px">✎</div>';
     row.onclick=()=>openHand(idx);
     wrap.appendChild(row);
-  });
+  }
 }
 
 function plural(n){ return (n%10===1&&n%100!==11)?'ruka':((n%10>=2&&n%10<=4&&(n%100<10||n%100>=20))?'ruke':'ruku'); }
@@ -454,7 +507,13 @@ function esc(s){ return (s+'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>'
 
 /* ============================ SETUP ============================ */
 function newSetupDraft(){
-  return { mode:4, target:701, names:['Mi','Vi','','',], rules:{belaAlways:true, stiglja:90} };
+  return { mode:4, target:701, names:['Mi','Vi','',''], seatNames:['','','',''], firstDealer:'random', rules:{belaAlways:true, stiglja:90} };
+}
+function seatCountFor(mode){ return mode===4?4:(mode===3?3:2); }
+// names shown in the "prvi dijeli" chips (individual players)
+function seatLabels(d){
+  if(d.mode===4) return d.seatNames.map((s,i)=> (s||'').trim() || ('Igrač '+(i+1)));
+  const pc=partyCount(d.mode); return Array.from({length:pc},(_,i)=> (d.names[i]||'').trim() || ('Igrač '+(i+1)));
 }
 function partyCount(mode){ return mode===3?3:2; }
 function defaultNames(mode){
@@ -472,9 +531,24 @@ function renderSetup(){
   for(let i=0;i<pc;i++){
     const w=el('div'); w.innerHTML='<label class="fld">'+labels[i]+'</label>';
     const inp=el('input'); inp.type='text'; inp.value=d.names[i]||''; inp.maxLength=18;
-    inp.oninput=()=>{ d.names[i]=inp.value; };
+    inp.oninput=()=>{ d.names[i]=inp.value; renderFirstDealer(); };
     w.appendChild(inp); n.appendChild(w);
   }
+  // seats (only 4-player needs individual seat names; 2/3 reuse player names)
+  const seatsWrap=$('setSeats'); seatsWrap.innerHTML='';
+  if(d.mode===4){
+    seatsWrap.style.display='';
+    for(let i=0;i<4;i++){
+      const team = i%2; // seat parity = team
+      const w=el('div'); w.innerHTML='<label class="fld">Sjedalo '+(i+1)+' · <span style="color:'+CSSACC[ACC[team]]+'">'+esc((d.names[team]||('Tim '+(team+1))))+'</span></label>';
+      const inp=el('input'); inp.type='text'; inp.value=d.seatNames[i]||''; inp.maxLength=14; inp.placeholder='ime igrača';
+      inp.oninput=()=>{ d.seatNames[i]=inp.value; renderFirstDealer(); };
+      w.appendChild(inp); seatsWrap.appendChild(w);
+    }
+  } else {
+    seatsWrap.style.display='none';
+  }
+  renderFirstDealer();
   // target
   const std=[351,501,701,1001];
   document.querySelectorAll('#setTarget .opt').forEach(o=>o.classList.toggle('on', +o.dataset.t===d.target));
@@ -483,9 +557,18 @@ function renderSetup(){
   $('ruleBela').classList.toggle('on', d.rules.belaAlways);
   $('stigVal').textContent=d.rules.stiglja;
 }
+function renderFirstDealer(){
+  const d=setupDraft, lbls=seatLabels(d), wrap=$('setFirstDealer'); wrap.innerHTML='';
+  const dice=el('div','opt'+(d.firstDealer==='random'?' on':''),'🎲 Nasumično');
+  dice.style.minWidth='120px'; dice.onclick=()=>{ d.firstDealer='random'; renderFirstDealer(); }; wrap.appendChild(dice);
+  lbls.forEach((nm,i)=>{ const team = d.mode===4?(i%2):i;
+    const o=el('div','opt'+(d.firstDealer===i?' on':''),nm);
+    if(d.firstDealer!==i) o.style.color=CSSACC[ACC[team]];
+    o.onclick=()=>{ d.firstDealer=i; renderFirstDealer(); }; wrap.appendChild(o); });
+}
 function bindSetup(){
   document.querySelectorAll('#setMode .opt').forEach(o=>o.onclick=()=>{
-    setupDraft.mode=+o.dataset.m; setupDraft.names=defaultNames(setupDraft.mode); renderSetup();
+    setupDraft.mode=+o.dataset.m; setupDraft.names=defaultNames(setupDraft.mode); setupDraft.firstDealer='random'; renderSetup();
   });
   document.querySelectorAll('#setTarget .opt').forEach(o=>o.onclick=()=>{ setupDraft.target=+o.dataset.t; renderSetup(); });
   $('setTargetCustom').oninput=e=>{ const v=parseInt(e.target.value,10); if(v>0){ setupDraft.target=v; document.querySelectorAll('#setTarget .opt').forEach(o=>o.classList.remove('on')); } };
@@ -494,14 +577,21 @@ function bindSetup(){
   $('btnStart').onclick=()=>{
     const d=setupDraft, pc=partyCount(d.mode);
     const parties=[]; for(let i=0;i<pc;i++) parties.push({name:(d.names[i]||'').trim()||('Igrač '+(i+1))});
-    S={ mode:d.mode, target:d.target, rules:{...d.rules}, parties, hands:[], created:Date.now() };
-    setupDraft=null; save(); render(); toast('Igra započeta! Sretno 🍀');
+    const seats=seatLabels(d), k=seats.length;
+    const firstDealer = d.firstDealer==='random' ? Math.floor(Math.random()*k) : clamp(d.firstDealer,0,k-1);
+    S={ mode:d.mode, target:d.target, rules:{...d.rules}, parties, seats, firstDealer, hands:[], created:Date.now() };
+    setupDraft=null; save(); render(); toast('Dijeli: '+seats[firstDealer]+' 🃏');
   };
   $('btnCancelSetup').onclick=()=>{ setupDraft=null; if(!S){ /* nothing */ } render(); if(!S) startNewGame(); };
 }
 function startNewGame(pref){
   setupDraft = newSetupDraft();
-  if(pref){ setupDraft.mode=pref.mode; setupDraft.target=pref.target; setupDraft.rules={...pref.rules}; setupDraft.names=pref.parties.map(p=>p.name); }
+  if(pref){
+    setupDraft.mode=pref.mode; setupDraft.target=pref.target; setupDraft.rules={...pref.rules};
+    setupDraft.names=pref.parties.map(p=>p.name);
+    if(pref.mode===4 && Array.isArray(pref.seats)) setupDraft.seatNames=[0,1,2,3].map(i=>pref.seats[i]||'');
+    setupDraft.firstDealer='random';   // fresh draw for the rematch
+  }
   render();
 }
 
@@ -697,8 +787,20 @@ $('btnRules').onclick=()=>openSheet('rulesSheet');
 $('rulesClose').onclick=closeSheet;
 $('mRules2').onclick=()=>{ closeSheet(); setTimeout(()=>openSheet('rulesSheet'),260); };
 
+// Dealer chooser
+function openDealer(){
+  const pick=$('dealerPick'); pick.innerHTML='';
+  const cur=currentDealerIdx();
+  S.seats.forEach((nm,i)=>{ const o=el('div','opt'+(i===cur?' on':''), nm);
+    if(i!==cur) o.style.color=CSSACC[ACC[seatTeam(i)]];
+    o.onclick=()=>{ setCurrentDealer(i); closeSheet(); render(); toast('Dijeli: '+S.seats[i]); }; pick.appendChild(o); });
+  openSheet('dealerSheet');
+}
+$('dealerClose').onclick=closeSheet;
+$('dealerRandom').onclick=()=>{ const k=S.seats.length, r=Math.floor(Math.random()*k); setCurrentDealer(r); closeSheet(); render(); toast('Dijeli: '+S.seats[r]+' 🃏'); };
+
 $('mNew').onclick=()=>{ closeSheet(); startNewGame(); };
-$('mRematch').onclick=()=>{ const pref=S?{mode:S.mode,target:S.target,rules:S.rules,parties:S.parties}:null; closeSheet(); startNewGame(pref); };
+$('mRematch').onclick=()=>{ const pref=S?{mode:S.mode,target:S.target,rules:S.rules,parties:S.parties,seats:S.seats}:null; closeSheet(); startNewGame(pref); };
 $('mReset').onclick=()=>{ if(confirm('Poništiti trenutnu igru i sve unesene ruke?')){ localStorage.removeItem(LS_KEY); S=null; closeSheet(); startNewGame(); toast('Igra poništena'); } };
 $('mInstall').onclick=async()=>{ closeSheet(); if(deferredPrompt){ deferredPrompt.prompt(); const {outcome}=await deferredPrompt.userChoice; deferredPrompt=null; if(outcome!=='accepted') toast('Instalaciju možeš pokrenuti kasnije iz izbornika'); } else { toast('Otvori u Chrome/Safari izborniku: "Dodaj na početni zaslon"'); } };
 
