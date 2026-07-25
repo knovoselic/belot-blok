@@ -322,7 +322,9 @@
     <p>Zvanja broji <b>samo tim s najvišim pojedinačnim zvanjem</b> — i to sva svoja zvanja. Protivnik ne broji ništa. <b>Bela (20) uvijek vrijedi</b> za onoga tko je ima. Kod jednakog najvišeg zvanja odlučuje bliži djelitelju (u aplikaciji birate ručno).</p>
 
     <h4>Prolaz / pad</h4>
-    <p>Tim koji je <b>zvao adut mora skupiti više od polovice</b> svih bodova u ruci (162 + zvanja). Ako ne uspije — <b>pao je</b> — i svi bodovi idu protivniku (bela ostaje, ako je uključeno kućno pravilo).</p>
+    <p>Tko je <b>zvao adut mora skupiti više od polovice</b> svih bodova u ruci (162 + zvanja). Ako ne uspije — <b>pao je</b>.</p>
+    <p><b>2 i 4 igrača:</b> svi bodovi idu protivniku (bela ostaje, ako je uključeno kućno pravilo).</p>
+    <p><b>3 igrača:</b> zvač dobiva <b>0</b> (bilježi se crticom „—"), a <b>druga dvojica zadrže točno svoje</b> pokupljene bodove — zvačevi se bodovi ne dijele. Bela ostaje zvaču ako je uključeno kućno pravilo.</p>
 
     <h4>Štiglja (svi štihovi)</h4>
     <p>Tko odnese svih 8 štihova dobiva bonus (zadano +90) povrh 162.</p>
@@ -392,10 +394,8 @@ function computeHand(h, S){
       if(P===2){
         const opp = caller===0?1:0; final=[0,0]; final[caller]=keptBela; final[opp]=total-keptBela;
       }else{
-        const forfeited = raw[caller]-keptBela; final=raw.slice(); final[caller]=keptBela;
-        const others=[]; for(let i=0;i<P;i++) if(i!==caller) others.push(i);
-        let dealt=0; const share=Math.round(forfeited/others.length);
-        others.forEach((o,ix)=>{ const add = ix===others.length-1 ? forfeited-dealt : share; final[o]=raw[o]+add; dealt+=add; });
+        // 3 igrača: zvač pada na 0 (zadrži belu ako je pravilo uključeno), branitelji zadrže SVOJE bodove — bez dijeljenja
+        final=raw.slice(); final[caller]=keptBela;
       }
     }
   }
@@ -485,7 +485,7 @@ function renderHist(){
     const h=S.hands[idx];
     const r=computeHand(h,S);
     const row=el('div','hrow');
-    const pts=S.parties.map((p,i)=>'<span style="color:'+CSSACC[ACC[i]]+'">'+r.final[i]+'</span>').join('');
+    const pts=S.parties.map((p,i)=>{ const fell=(i===r.caller && !r.passed && r.final[i]===0); return '<span style="color:'+CSSACC[ACC[i]]+'">'+(fell?'—':r.final[i])+'</span>'; }).join('');
     const callerName = h.caller!=null ? S.parties[h.caller].name : '—';
     const extras=[];
     if(h.bela!=null) extras.push('bela');
@@ -728,8 +728,9 @@ function syncPreview(){
   S.parties.forEach((p,i)=>{
     const row=el('div','pvrow');
     const isCaller = h.caller===i;
+    const fell = (i===r.caller && !r.passed && r.final[i]===0);
     row.innerHTML='<span><span class="dot'+ACC[i]+'">●</span> '+esc(p.name)+(isCaller?' <span class="pill" style="background:rgba(231,198,107,.2);color:var(--gold)">📢 zvao</span>':'')+'</span>'+
-                  '<span class="val" style="color:'+CSSACC[ACC[i]]+'">+'+r.final[i]+'</span>';
+                  '<span class="val" style="color:'+CSSACC[ACC[i]]+'">'+(fell?'—':'+'+r.final[i])+'</span>';
     box.appendChild(row);
   });
   if(h.caller!=null){
