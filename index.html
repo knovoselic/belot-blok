@@ -76,16 +76,20 @@
   .dotA{color:var(--a)} .dotB{color:var(--b)} .dotC{color:var(--c)}
   .bgA{background:var(--a);color:#04202f} .bgB{background:var(--b);color:#2a1503} .bgC{background:var(--c);color:#241033}
 
-  /* Scoreboard */
-  .board{display:grid;gap:12px;margin-bottom:14px}
-  .teamcard{position:relative;overflow:hidden;padding:14px 16px}
-  .teamcard .tname{font-weight:800;font-size:15px;display:flex;align-items:center;gap:8px}
-  .teamcard .tscore{font-size:40px;font-weight:900;line-height:1;letter-spacing:-1px;margin-top:2px}
-  .teamcard .tsub{font-size:12px;color:var(--muted);margin-top:4px}
-  .prog{height:7px;border-radius:6px;background:rgba(255,255,255,.08);margin-top:10px;overflow:hidden}
+  /* Scoreboard — team cards side by side to save vertical space */
+  .board{display:grid;gap:8px;margin-bottom:10px;grid-template-columns:repeat(2,1fr)}
+  .board.p3{grid-template-columns:repeat(3,1fr)}
+  .teamcard{position:relative;overflow:hidden;padding:11px 12px}
+  .teamcard .tname{font-weight:800;font-size:13px;display:flex;align-items:center;gap:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .teamcard .tscore{font-size:32px;font-weight:900;line-height:1;letter-spacing:-1px;margin-top:3px;font-variant-numeric:tabular-nums}
+  .board.p3 .teamcard .tscore{font-size:27px}
+  .teamcard .tsub{font-size:11px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .prog{height:6px;border-radius:6px;background:rgba(255,255,255,.08);margin-top:8px;overflow:hidden}
   .prog > i{display:block;height:100%;border-radius:6px;transition:width .4s}
   .accentA{border-left:4px solid var(--a)} .accentB{border-left:4px solid var(--b)} .accentC{border-left:4px solid var(--c)}
-  .lead{position:absolute;top:10px;right:12px;font-size:11px;font-weight:800;color:var(--gold)}
+  .teamcard.leading{box-shadow:inset 0 0 0 1.5px rgba(231,198,107,.55)}
+  .teamcard.champ{box-shadow:inset 0 0 0 2px var(--gold);background:linear-gradient(160deg,#1b5c46,var(--panel))}
+  .lead{position:absolute;top:8px;right:9px;font-size:12px;color:var(--gold)}
 
   /* History */
   .hist{display:flex;flex-direction:column;gap:8px}
@@ -148,8 +152,17 @@
   .rules table{width:100%;border-collapse:collapse;margin:6px 0;font-size:13px}
   .rules td{border-bottom:1px solid var(--line);padding:6px 4px}
   .rules td:last-child{text-align:right;font-weight:800;color:var(--gold)}
-  .banner{margin:0 0 14px;padding:16px;border-radius:16px;text-align:center;background:linear-gradient(160deg,#1a6b4f,#0f4535);border:1px solid var(--gold)}
-  .banner .big{font-size:22px;font-weight:900;color:var(--gold)}
+  .banner{position:relative;overflow:hidden;margin:0 0 12px;padding:20px 16px;border-radius:18px;text-align:center;background:linear-gradient(160deg,#1c7a5a,#0f4535);border:2px solid var(--gold);box-shadow:0 0 0 4px rgba(231,198,107,.12), var(--shadow);animation:pop .35s ease}
+  @keyframes pop{from{transform:scale(.95);opacity:.4}to{transform:scale(1);opacity:1}}
+  .banner .trophy{font-size:40px;line-height:1}
+  .banner .kicker{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);font-weight:800;margin-top:4px}
+  .banner .big{font-size:26px;font-weight:900;color:#fff;margin-top:2px}
+  .banner .fin{font-size:13px;color:var(--muted);margin-top:4px;font-variant-numeric:tabular-nums}
+  .banner .acts{display:flex;gap:8px;margin-top:14px}
+  .banner .acts .btn{flex:1;width:auto}
+  .fab .over{display:flex;gap:8px}
+  .fab .over .btn{flex:1;width:auto}
+  .fab .over .lock{flex:none;display:flex;align-items:center;justify-content:center;padding:0 14px;border-radius:12px;background:var(--panel);border:1px solid var(--line);color:var(--muted);font-weight:700;font-size:13px}
   .switch{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}
   .switch:last-child{border-bottom:none}
   .switch .t{font-weight:700;font-size:14px}
@@ -453,7 +466,22 @@ function render(){
   if(setupDraft){ renderSetup(); return; }
   if(!hasGame){ startNewGame(); return; }
   ensureDealer();
-  renderBoard(); renderDealer(); renderHist();
+  renderBoard(); renderDealer(); renderHist(); renderFab();
+}
+function renderFab(){
+  const over = !!winnerInfo();
+  const inner=$('fab').querySelector('.inner');
+  const db=$('dealerBar'); if(db) db.style.display = over ? 'none' : '';
+  inner.innerHTML='';
+  if(over){
+    const wrap=el('div','over');
+    const lock=el('div','lock','🔒 Igra gotova');
+    const rb=el('button','btn gold block','🔁 Revanš'); rb.onclick=doRematch;
+    wrap.appendChild(lock); wrap.appendChild(rb); inner.appendChild(wrap);
+  } else {
+    const b=el('button','btn gold block lg','＋ Nova ruka'); b.onclick=()=>openHand(null);
+    inner.appendChild(b);
+  }
 }
 
 function renderDealer(){
@@ -472,28 +500,38 @@ function renderDealer(){
 
 function renderBoard(){
   const t=totals(); const win=winnerInfo();
-  const board=$('board'); board.innerHTML='';
+  const board=$('board'); board.className='board p'+S.parties.length; board.innerHTML='';
   // winner banner
   const wb=$('winBanner'); wb.innerHTML='';
   if(win){
+    const scores=S.parties.map((p,i)=>esc(p.name)+' '+t[i]).join('  ·  ');
     const b=el('div','banner');
-    b.innerHTML='<div class="small muted">POBJEDNIK</div><div class="big">'+esc(S.parties[win.idx].name)+' 🏆</div><div class="small muted" style="margin-top:6px">Dosegnut cilj '+S.target+' bodova</div>';
+    b.innerHTML='<div class="trophy">🏆</div><div class="kicker">Igra gotova · pobjednik</div>'+
+      '<div class="big">'+esc(S.parties[win.idx].name)+'</div>'+
+      '<div class="fin">'+scores+'  —  cilj '+S.target+'</div>';
+    const acts=el('div','acts');
+    const rb=el('button','btn gold block','🔁 Revanš'); rb.onclick=doRematch;
+    const nb=el('button','btn ghost block','🆕 Nova igra'); nb.onclick=()=>startNewGame();
+    acts.appendChild(rb); acts.appendChild(nb); b.appendChild(acts);
     wb.appendChild(b);
   }
+  const maxT=Math.max(...t);
   S.parties.forEach((p,i)=>{
-    const c=el('div','card teamcard accent'+ACC[i]);
+    const leading = !win && t[i]===maxT && t.filter(x=>x===maxT).length===1;
+    const champ = win && i===win.idx;
+    const c=el('div','card teamcard accent'+ACC[i]+(champ?' champ':'')+(leading?' leading':''));
     const pct=Math.min(100, Math.round(t[i]/S.target*100));
-    const leading = t[i]===Math.max(...t) && t.filter(x=>x===Math.max(...t)).length===1;
     c.innerHTML =
-      (leading?'<span class="lead">▲ vodi</span>':'')+
+      (champ?'<span class="lead">🏆</span>':(leading?'<span class="lead">▲</span>':''))+
       '<div class="tname"><span class="dot'+ACC[i]+'">●</span>'+esc(p.name)+'</div>'+
       '<div class="tscore">'+t[i]+'</div>'+
-      '<div class="tsub">do cilja: '+Math.max(0,S.target-t[i])+' · '+pct+'%</div>'+
+      '<div class="tsub">'+(t[i]>=S.target?'✓ cilj':'još '+(S.target-t[i]))+'</div>'+
       '<div class="prog"><i style="width:'+pct+'%;background:'+CSSACC[ACC[i]]+'"></i></div>';
     board.appendChild(c);
   });
   $('handCount').textContent = S.hands.length ? (S.hands.length+' '+plural(S.hands.length)) : '';
 }
+function doRematch(){ const pref=S?{mode:S.mode,target:S.target,rules:S.rules,parties:S.parties,seats:S.seats}:null; closeSheet(); startNewGame(pref); }
 
 function renderHist(){
   const wrap=$('hist'); wrap.innerHTML='';
@@ -620,6 +658,7 @@ function blankHand(){
 let declActive = 0; // which party we add declarations to
 
 function openHand(index){
+  if(index==null && winnerInfo()){ toast('Igra je gotova — pokreni revanš ili uredi zadnju ruku'); return; }
   editing.open=true;
   const N=S.parties.length;
   if(index==null){ editing.index=null; editing.hand=blankHand(); $('handTitle').textContent='Nova ruka'; $('handDelete').classList.add('hidden');
@@ -807,7 +846,7 @@ function toast(msg,actLabel,actFn){
 function hideToast(){ $('toast').classList.remove('on'); }
 
 /* ============================ EVENTS ============================ */
-$('btnNewHand').onclick=()=>openHand(null);
+// FAB button is (re)built by renderFab() depending on game-over state
 $('handClose').onclick=closeSheet;
 $('handSave').onclick=saveHand;
 $('handDelete').onclick=deleteHand;
