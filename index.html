@@ -319,7 +319,8 @@
       <tr><td>4 devetke</td><td>150</td></tr>
       <tr><td>4 dečka</td><td>200</td></tr>
     </table>
-    <p>Zvanja broji <b>samo tim s najvišim pojedinačnim zvanjem</b> — i to sva svoja zvanja. Protivnik ne broji ništa. <b>Bela (20) uvijek vrijedi</b> za onoga tko je ima. Kod jednakog najvišeg zvanja odlučuje bliži djelitelju (u aplikaciji birate ručno).</p>
+    <p>Zvanja broji <b>samo strana s najvišim pojedinačnim zvanjem</b> — i to sva svoja zvanja. Protivnik ne broji ništa. <b>Bela (20) uvijek vrijedi</b> za onoga tko je ima. Kod jednakog najvišeg zvanja odlučuje bliži djelitelju (u aplikaciji birate ručno).</p>
+    <p><b>3 igrača:</b> dva branitelja čine <b>jednu stranu</b> nasuprot zvaču. Ako branitelji imaju najviše zvanje, <b>oba broje svoja zvanja</b> (svaki zadrži svoje) i time ruše zvača; ako zvač ima najviše, broji samo on.</p>
 
     <h4>Prolaz / pad</h4>
     <p>Tko je <b>zvao adut mora skupiti više od polovice</b> svih bodova u ruci (162 + zvanja). Ako ne uspije — <b>pao je</b>.</p>
@@ -372,21 +373,37 @@ function computeHand(h, S){
   const cards = h.cards.slice();
   let declSum = Array(P).fill(0), declMax = Array(P).fill(0);
   for(let i=0;i<P;i++){ const d=h.decl[i]||{}; for(const k in d){ const c=d[k]||0; if(c>0){ declSum[i]+=DECL[k].v*c; declMax[i]=Math.max(declMax[i],DECL[k].v);} } }
-  let countedDecl = Array(P).fill(0), declWinner=null, declTie=false;
+  const caller=h.caller;
+  let countedDecl = Array(P).fill(0), declWinner=null, declTie=false, declWinnerSide=null;
   const anyDecl = declMax.some(v=>v>0);
   if(anyDecl){
-    const mx = Math.max(...declMax);
-    const cont = []; for(let i=0;i<P;i++) if(declMax[i]===mx) cont.push(i);
-    if(cont.length===1) declWinner=cont[0];
-    else { declTie=true; declWinner = (h.zvanjaWinner!=null && cont.includes(h.zvanjaWinner))?h.zvanjaWinner:cont[0]; }
-    countedDecl[declWinner]=declSum[declWinner];
+    if(P===3 && caller!=null){
+      // 3 igrača: zvanja se uspoređuju po STRANAMA — zvač protiv dvojice branitelja (koalicija).
+      // Strana s najvišim zvanjem broji SVA svoja zvanja; svaki igrač zadrži svoje. Bela je izuzetak (uvijek).
+      const defenders=[0,1,2].filter(i=>i!==caller);
+      const callerMax=declMax[caller];
+      const defMax=Math.max(declMax[defenders[0]],declMax[defenders[1]]);
+      let side;
+      if(callerMax>defMax) side='caller';
+      else if(defMax>callerMax) side='defense';
+      else { declTie=true; side=(h.zvanjaSide==='caller'||h.zvanjaSide==='defense')?h.zvanjaSide:'defense'; }
+      if(side==='caller') countedDecl[caller]=declSum[caller];
+      else defenders.forEach(dd=>countedDecl[dd]=declSum[dd]);
+      declWinnerSide=side;
+    } else {
+      // 2 i 4 igrača (ili 3 prije nego je zvač odabran): svaka strana zasebno, broji najviše pojedinačno
+      const mx = Math.max(...declMax);
+      const cont = []; for(let i=0;i<P;i++) if(declMax[i]===mx) cont.push(i);
+      if(cont.length===1) declWinner=cont[0];
+      else { declTie=true; declWinner = (h.zvanjaWinner!=null && cont.includes(h.zvanjaWinner))?h.zvanjaWinner:cont[0]; }
+      countedDecl[declWinner]=declSum[declWinner];
+    }
   }
   let bela=Array(P).fill(0); if(h.bela!=null) bela[h.bela]=20;
   let stig=Array(P).fill(0); if(h.stiglja!=null) stig[h.stiglja]=S.rules.stiglja;
   let raw=Array(P).fill(0); for(let i=0;i<P;i++) raw[i]=cards[i]+countedDecl[i]+bela[i]+stig[i];
   let total=raw.reduce((a,b)=>a+b,0);
   let final=raw.slice(), passed=true;
-  const caller=h.caller;
   if(caller!=null && total>0){
     passed = raw[caller] > total/2;
     if(!passed){
@@ -399,7 +416,7 @@ function computeHand(h, S){
       }
     }
   }
-  return {final,passed,total,raw,countedDecl,declSum,declMax,declWinner,declTie,bela,stig,caller};
+  return {final,passed,total,raw,countedDecl,declSum,declMax,declWinner,declTie,declWinnerSide,bela,stig,caller};
 }
 function totals(){ const P=S.parties.length; const t=Array(P).fill(0); S.hands.forEach(h=>{ const r=computeHand(h,S); for(let i=0;i<P;i++) t[i]+=r.final[i]; }); return t; }
 
@@ -490,7 +507,7 @@ function renderHist(){
     const extras=[];
     if(h.bela!=null) extras.push('bela');
     if(h.stiglja!=null) extras.push('štiglja');
-    if(r.declWinner!=null && r.declSum[r.declWinner]>0) extras.push('zvanja '+r.declSum[r.declWinner]);
+    const declTot=r.countedDecl.reduce((a,b)=>a+b,0); if(declTot>0) extras.push('zvanja '+declTot);
     const verdict = h.caller!=null ? (r.passed?'':' · <span class="fell">pao</span>') : '';
     row.innerHTML =
       '<div class="idx">'+(idx+1)+'</div>'+
@@ -598,7 +615,7 @@ function startNewGame(pref){
 /* ============================ HAND SHEET ============================ */
 function blankHand(){
   const P=S.parties.length;
-  return { caller:null, cards:Array(P).fill(0), decl:Array.from({length:P},()=>({})), bela:null, stiglja:null, zvanjaWinner:null };
+  return { caller:null, cards:Array(P).fill(0), decl:Array.from({length:P},()=>({})), bela:null, stiglja:null, zvanjaWinner:null, zvanjaSide:null };
 }
 let declActive = 0; // which party we add declarations to
 
@@ -644,15 +661,28 @@ function buildHandUI(){
   // tie resolver
   const r=computeHand(h,S);
   const tie=$('declTie');
-  if(r.declTie){
+  if(r.declTie && P===3 && r.declWinnerSide!=null){
+    // 3 igrača: izjednačeno najviše zvanje između zvača i branitelja — biraj koja strana broji
+    tie.classList.remove('hidden');
+    tie.innerHTML='⚖︎ Jednako najviše zvanje — koja strana broji? ';
+    const seg=el('span');
+    const defenders=[0,1,2].filter(i=>i!==h.caller);
+    const cur = h.zvanjaSide || r.declWinnerSide;
+    const cb=el('span','chip'); cb.style.margin='4px 4px 0'; cb.textContent='📢 '+S.parties[h.caller].name;
+    if(cur==='caller'){ cb.style.background=CSSACC[ACC[h.caller]]; cb.style.color='#04202f'; }
+    cb.onclick=()=>{ h.zvanjaSide='caller'; buildHandUI(); }; seg.appendChild(cb);
+    const db=el('span','chip'); db.style.margin='4px 4px 0'; db.textContent='Branitelji ('+defenders.map(i=>S.parties[i].name).join(' + ')+')';
+    if(cur==='defense'){ db.style.background=CSSACC.C; db.style.color='#241033'; }
+    db.onclick=()=>{ h.zvanjaSide='defense'; buildHandUI(); }; seg.appendChild(db);
+    tie.appendChild(seg);
+  } else if(r.declTie){
     tie.classList.remove('hidden');
     tie.innerHTML='⚖︎ Jednako najviše zvanje — tko broji? ';
     const seg=el('span');
-    // find contenders
     const mx=Math.max(...r.declMax);
     S.parties.forEach((p,i)=>{ if(r.declMax[i]===mx){ const b=el('span','chip'); b.style.margin='4px 4px 0'; b.textContent=p.name; if((h.zvanjaWinner==null?r.declWinner:h.zvanjaWinner)===i){ b.style.background=CSSACC[ACC[i]]; b.style.color='#04202f'; } b.onclick=()=>{ h.zvanjaWinner=i; buildHandUI(); }; seg.appendChild(b); } });
     tie.appendChild(seg);
-  } else { tie.classList.add('hidden'); h.zvanjaWinner=null; }
+  } else { tie.classList.add('hidden'); h.zvanjaWinner=null; h.zvanjaSide=null; }
 
   // bela
   const bs=$('belaSeg'); bs.innerHTML='';
@@ -761,8 +791,8 @@ function deleteHand(){
 
 /* ============================ SHEETS / UI PLUMBING ============================ */
 let openSheetId=null;
-function openSheet(id){ openSheetId=id; $('scrim').classList.add('on'); $(id).classList.add('on'); }
-function closeSheet(){ if(openSheetId){ $(openSheetId).classList.remove('on'); } $('scrim').classList.remove('on'); openSheetId=null; editing.open=false; }
+function openSheet(id){ openSheetId=id; const s=$(id); const body=s.querySelector('.sbody'); if(body) body.scrollTop=0; s.scrollTop=0; $('scrim').classList.add('on'); s.classList.add('on'); }
+function closeSheet(){ if(openSheetId){ $(openSheetId).classList.remove('on'); } $('scrim').classList.remove('on'); openSheetId=null; editing.open=false; window.scrollTo(0,0); }
 $('scrim').onclick=closeSheet;
 
 function toast(msg,actLabel,actFn){
