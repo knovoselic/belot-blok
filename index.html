@@ -320,7 +320,8 @@
       <tr><td>Devetka (ne-adut), 8, 7</td><td>0</td></tr>
       <tr><td>Zadnji štih (bonus)</td><td>+10</td></tr>
     </table>
-    <p class="small muted">Ukupno u jednoj ruci: <b>152 iz karata + 10 zadnji štih = 162 boda</b> (plus zvanja).</p>
+    <p class="small muted">Ukupno u jednoj ruci: <b>152 iz karata + 10 zadnji štih = 162 boda</b> (plus zvanja). U <b>3</b> igrača također 162 (2 karte iz talona pribrajaju se zvaču).</p>
+    <p class="small muted"><b>2 igrača:</b> igra se samo s <b>20 karata</b> (10 po igraču), pa ukupan zbroj <b>varira</b> — zato oba igrača upisuju svoje stvarne bodove (nema fiksnih 162).</p>
 
     <h4>Zvanja</h4>
     <table>
@@ -332,7 +333,8 @@
       <tr><td>4 devetke</td><td>150</td></tr>
       <tr><td>4 dečka</td><td>200</td></tr>
     </table>
-    <p>Zvanja broji <b>samo strana s najvišim pojedinačnim zvanjem</b> — i to sva svoja zvanja. Protivnik ne broji ništa. <b>Bela (20) uvijek vrijedi</b> za onoga tko je ima. Kod jednakog najvišeg zvanja odlučuje bliži djelitelju (u aplikaciji birate ručno).</p>
+    <p>Zvanja broji <b>samo strana s najvišim zvanjem</b> — i to sva svoja zvanja. Protivnik ne broji ništa. <b>Bela (20) uvijek vrijedi</b> za onoga tko je ima. Kod jednakog najvišeg zvanja odlučuje bliži djelitelju (u aplikaciji birate ručno).</p>
+    <p class="small muted">Jačina (za tko broji): 4 dečka &gt; 4 devetke &gt; 4 iste (as/10/K/baba) &gt; niz &gt; kvarta &gt; terca. Napomena: <b>„4 iste" (100) jače su od niza (100)</b>, iako vrijede jednako.</p>
     <p><b>3 igrača:</b> dva branitelja čine <b>jednu stranu</b> nasuprot zvaču. Ako branitelji imaju najviše zvanje, <b>oba broje svoja zvanja</b> (svaki zadrži svoje) i time ruše zvača; ako zvač ima najviše, broji samo on.</p>
 
     <h4>Prolaz / pad</h4>
@@ -366,6 +368,8 @@
 const LS_KEY = 'belotblok_v1';
 const DECL = { terca:{v:20,l:'Terca',s:'20'}, kvarta:{v:50,l:'Kvarta',s:'50'}, niz:{v:100,l:'Niz 5+',s:'100'},
   cetiri_iste:{v:100,l:'4 iste',s:'100'}, cetiri_devetke:{v:150,l:'4 devetke',s:'150'}, cetiri_decka:{v:200,l:'4 dečka',s:'200'} };
+// jačina zvanja za usporedbu (tko broji): "4 iste" jače su od niza iako oboje vrijede 100
+const DRANK = { terca:1, kvarta:2, niz:3, cetiri_iste:4, cetiri_devetke:5, cetiri_decka:6 };
 const ACC = ['A','B','C'];
 const CSSACC = {A:'var(--a)',B:'var(--b)',C:'var(--c)'};
 
@@ -385,7 +389,7 @@ function computeHand(h, S){
   const P = S.parties.length;
   const cards = h.cards.slice();
   let declSum = Array(P).fill(0), declMax = Array(P).fill(0);
-  for(let i=0;i<P;i++){ const d=h.decl[i]||{}; for(const k in d){ const c=d[k]||0; if(c>0){ declSum[i]+=DECL[k].v*c; declMax[i]=Math.max(declMax[i],DECL[k].v);} } }
+  for(let i=0;i<P;i++){ const d=h.decl[i]||{}; for(const k in d){ const c=d[k]||0; if(c>0){ declSum[i]+=DECL[k].v*c; declMax[i]=Math.max(declMax[i],DRANK[k]);} } }
   const caller=h.caller;
   let countedDecl = Array(P).fill(0), declWinner=null, declTie=false, declWinnerSide=null;
   const anyDecl = declMax.some(v=>v>0);
@@ -683,7 +687,12 @@ function buildHandUI(){
   // stiglja seg
   const ss=$('stigSeg'); ss.innerHTML='';
   const none=el('div','opt'+(h.stiglja==null?' on':''),'Bez štiglje'); none.onclick=()=>{ h.stiglja=null; editing.text=Array(P).fill(''); editing.order=[]; buildHandUI(); }; ss.appendChild(none);
-  S.parties.forEach((p,i)=>{ const o=el('div','opt'+(h.stiglja===i?' on':''),'Štiglja: '+p.name); o.onclick=()=>{ h.stiglja=i; const c=Array(P).fill(0); c[i]=162; h.cards=c; editing.text=c.map(String); editing.order=[...Array(P-1).keys()]; buildHandUI(); }; ss.appendChild(o); });
+  S.parties.forEach((p,i)=>{ const o=el('div','opt'+(h.stiglja===i?' on':''),'Štiglja: '+p.name); o.onclick=()=>{
+    h.stiglja=i;
+    if(fixedTotal()!=null){ const c=Array(P).fill(0); c[i]=162; h.cards=c; editing.text=c.map(String); editing.order=[...Array(P-1).keys()]; }
+    else { const opp=i===0?1:0; editing.text[opp]='0'; editing.order=[opp, ...editing.order.filter(x=>x!==opp)]; }  // 2 igrača: protivnik 0, pobjednik unosi svoje bodove
+    buildHandUI();
+  }; ss.appendChild(o); });
 
   // declarations who
   const dw=$('declWho'); dw.innerHTML='';
@@ -731,23 +740,28 @@ function buildHandUI(){
   syncPreview();
 }
 
-/* Points entry: empty boxes, type the number directly. The box you leave
-   untouched auto-fills so the total stays 162. Works for 2 and 3 parties. */
+/* Fiksni zbroj po ruci: 162 za 3 i 4 igrača (sve karte se broje).
+   U dvoje se igra samo s 20 karata pa zbroj VARIRA -> null (bez auto-dopune, bez /162). */
+function fixedTotal(){ return S.mode===2 ? null : 162; }
+
+/* Points entry: empty boxes, type the number directly. In fixed-total modes the
+   box you leave untouched auto-fills to 162; in 2-player both boxes are free. */
 function pointsAutoIdx(){
+  if(fixedTotal()==null) return -1;                      // 2 igrača: nema auto-dopune
   const N=S.parties.length;
   if(editing.order.length < N-1) return -1;             // not enough boxes filled yet
   const manual = editing.order.slice(0, N-1);           // most-recently typed N-1 are manual
   return [...Array(N).keys()].find(i=>!manual.includes(i));
 }
 function recomputePoints(){
-  const N=S.parties.length, h=editing.hand;
+  const N=S.parties.length, h=editing.hand, FT=fixedTotal();
   const nums = editing.text.map(t=> t===''? null : (parseInt(t,10)||0));
   const ai = pointsAutoIdx();
   if(ai>=0){
     const manual = editing.order.slice(0, N-1);
     const sumM = manual.reduce((s,i)=>s+(nums[i]||0),0);
-    const auto = 162 - sumM;
-    nums[ai] = (auto>=0 && sumM<=162) ? auto : null;
+    const auto = FT - sumM;
+    nums[ai] = (auto>=0 && sumM<=FT) ? auto : null;
     editing.text[ai] = nums[ai]==null ? '' : String(auto);
   }
   for(let i=0;i<N;i++) h.cards[i] = nums[i]||0;
@@ -756,8 +770,12 @@ function recomputePoints(){
     if(r.badge) r.badge.style.visibility = (i===ai)?'visible':'hidden';
   });
   const sum=h.cards.reduce((a,b)=>a+b,0);
-  const col = h.stiglja!=null ? 'var(--muted)' : (pointsValid(h)?'var(--green)':(sum>162?'var(--red)':'var(--muted)'));
-  $('ptsSum').innerHTML = h.stiglja!=null ? 'štiglja' : ('zbroj: <b style="color:'+col+'">'+sum+'</b> / 162');
+  if(FT!=null){
+    const col = h.stiglja!=null ? 'var(--muted)' : (pointsValid(h)?'var(--green)':(sum>FT?'var(--red)':'var(--muted)'));
+    $('ptsSum').innerHTML = h.stiglja!=null ? 'štiglja' : ('zbroj: <b style="color:'+col+'">'+sum+'</b> / '+FT);
+  } else {
+    $('ptsSum').innerHTML = h.stiglja!=null ? ('štiglja +'+S.rules.stiglja) : ('ukupno u ruci: <b>'+sum+'</b>');
+  }
   syncPreview();
 }
 function onPointsInput(i, val){
@@ -766,13 +784,15 @@ function onPointsInput(i, val){
   recomputePoints();
 }
 function pointsValid(h){
-  if(h.stiglja!=null) return true;
+  const FT=fixedTotal();
+  if(h.stiglja!=null && FT!=null) return true;           // 3/4: štiglja unaprijed postavi karte
   if(editing.text && editing.text.some(t=>t==='')) return false;
   const sum=h.cards.reduce((a,b)=>a+b,0);
-  return sum===162 && h.cards.every(v=>v>=0 && v<=162);
+  if(FT==null) return h.cards.every(v=>v>=0 && v<=260);   // 2 igrača: bilo koji valjani brojevi
+  return sum===FT && h.cards.every(v=>v>=0 && v<=FT);
 }
 function buildPoints(){
-  const N=S.parties.length, h=editing.hand, area=$('ptsArea'), locked=h.stiglja!=null;
+  const N=S.parties.length, h=editing.hand, area=$('ptsArea'), locked=h.stiglja!=null && fixedTotal()!=null;
   area.innerHTML=''; editing.pRefs=[];
   S.parties.forEach((p,i)=>{
     const box=el('div','ptsbox'); box.style.marginBottom='10px';
