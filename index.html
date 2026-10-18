@@ -171,6 +171,46 @@
   .tgl.on{background:var(--green)}
   .tgl i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:left .2s}
   .tgl.on i{left:25px}
+  select{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:12px 10px;font-size:16px;font-weight:600;outline:none}
+
+  /* Setup: player slots + quick pick */
+  .teambox{padding:12px;border-radius:14px;background:var(--bg);border:1px solid var(--line);margin-bottom:10px}
+  .quick{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+  .quick .chip.on{background:var(--gold);color:#241a00;border-color:var(--gold)}
+
+  /* Stats */
+  .tabs{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px;margin-bottom:10px}
+  .tabs .tab{flex:1;text-align:center;padding:10px 2px;border-radius:10px;font-weight:800;font-size:13px;cursor:pointer;color:var(--muted)}
+  .tabs .tab.on{background:var(--gold);color:#241a00}
+  .seg.mini .opt{padding:7px 4px;font-size:13px;min-width:0}
+  .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .tile{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 11px;min-width:0}
+  .tile .v{font-size:22px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tile .k{font-size:11px;color:var(--muted);font-weight:700;margin-top:3px}
+  .tile .s{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .list{display:flex;flex-direction:column;gap:8px}
+  .lrow{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:12px;background:var(--bg);border:1px solid var(--line);cursor:pointer}
+  .lrow .main{flex:1;min-width:0}
+  .lrow .nm{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lrow .sub{font-size:11px;color:var(--muted);margin-top:2px}
+  .lrow .big{font-weight:900;font-size:18px;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .bar{height:6px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:6px}
+  .bar > i{display:block;height:100%;background:var(--gold);border-radius:6px}
+  .rec{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer}
+  .rec:last-child{border-bottom:none}
+  .rec .rt{font-size:14px;font-weight:700}
+  .rec .rw{font-size:11px;color:var(--muted);margin-top:2px}
+  .rec .rv{font-weight:900;color:var(--gold);white-space:nowrap;font-variant-numeric:tabular-nums}
+  .form{display:flex;gap:4px;flex-wrap:wrap}
+  .form i{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;font-style:normal;font-size:12px;font-weight:900}
+  .form i.W{background:rgba(63,191,127,.2);color:var(--green)}
+  .form i.L{background:rgba(226,86,78,.18);color:#ff9c96}
+  table.blok{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+  table.blok th,table.blok td{padding:7px 4px;text-align:center;border-bottom:1px solid var(--line);font-size:15px;font-weight:800}
+  table.blok th{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px}
+  table.blok td.n{color:var(--muted);font-size:12px;width:28px}
+  table.blok td small{display:block;font-size:10px;color:var(--muted);font-weight:700}
+  table.blok tfoot td{font-size:18px;font-weight:900;border-top:2px solid var(--line);border-bottom:none}
 </style>
 </head>
 <body>
@@ -178,6 +218,7 @@
   <header class="top">
     <span class="logo">🂡</span>
     <h1>Belot Blok<small>rezultati bez greške</small></h1>
+    <button class="iconbtn" id="btnStats" title="Statistika i povijest">📊</button>
     <button class="iconbtn" id="btnRules" title="Pravila">📖</button>
     <button class="iconbtn" id="btnMenu" title="Izbornik">⋯</button>
   </header>
@@ -192,12 +233,14 @@
         <div class="opt on" data-m="4">4 (2 na 2)</div>
       </div>
 
-      <h2 class="sec block-sec">Imena</h2>
-      <div id="setNames" class="grid"></div>
+      <h2 class="sec block-sec">Igrači</h2>
+      <div id="setQuick"></div>
+      <div id="setNames"></div>
+      <datalist id="dlPlayers"></datalist>
 
       <h2 class="sec block-sec">Dijeljenje karata</h2>
-      <div id="setSeats" class="grid"></div>
-      <label class="fld" id="setFirstDealerLbl" style="margin-top:10px">Prvi dijeli</label>
+      <p class="small muted" id="setSeatNote" style="margin:0 0 8px">Dijeli se u krug: sjedalo 1 → 2 → 3 → 4 (suigrači sjede nasuprot).</p>
+      <label class="fld" id="setFirstDealerLbl">Prvi dijeli</label>
       <div class="seg" id="setFirstDealer" style="flex-wrap:wrap"></div>
 
       <h2 class="sec block-sec">Igra do</h2>
@@ -240,6 +283,24 @@
       <span class="small muted" id="handCount"></span>
     </div>
     <div class="hist" id="hist"></div>
+  </div>
+
+  <!-- STATS VIEW -->
+  <div id="viewStats" class="hidden">
+    <div class="tabs" id="statsTabs">
+      <div class="tab" data-tab="overview">Pregled</div>
+      <div class="tab" data-tab="players">Igrači</div>
+      <div class="tab" data-tab="teams">Timovi</div>
+      <div class="tab" data-tab="history">Povijest</div>
+    </div>
+    <div class="seg mini" id="statsMode" style="margin-bottom:12px">
+      <div class="opt" data-m="0">Sve igre</div>
+      <div class="opt" data-m="2">2 igrača</div>
+      <div class="opt" data-m="3">3 igrača</div>
+      <div class="opt" data-m="4">2 na 2</div>
+    </div>
+    <div id="statsBody"></div>
+    <button class="btn ghost block" id="statsBack" style="margin-top:16px">← Natrag na igru</button>
   </div>
 </div>
 
@@ -296,10 +357,16 @@
   <div class="sbody">
     <button class="btn block lg" id="mNew">🆕 Nova igra</button>
     <button class="btn block lg" id="mRematch" style="margin-top:10px">🔁 Revanš (isti igrači)</button>
+    <button class="btn block lg" id="mStats" style="margin-top:10px">📊 Statistika, igrači i povijest</button>
     <button class="btn block lg" id="mInstall" style="margin-top:10px">📲 Instaliraj aplikaciju</button>
     <button class="btn block lg" id="mRules2" style="margin-top:10px">📖 Pravila i bodovanje</button>
+    <div class="grid c2" style="margin-top:10px">
+      <button class="btn block" id="mExport">💾 Izvezi podatke</button>
+      <button class="btn block" id="mImport">📥 Uvezi podatke</button>
+    </div>
+    <input type="file" id="importFile" accept="application/json,.json" class="hidden">
     <button class="btn danger block lg" id="mReset" style="margin-top:18px">🗑 Poništi trenutnu igru</button>
-    <p class="small muted" style="margin-top:16px;text-align:center">Belot Blok · radi offline · podaci ostaju na uređaju</p>
+    <p class="small muted" style="margin-top:16px;text-align:center">Belot Blok · radi offline · podaci ostaju na uređaju<br>Brisanjem podataka preglednika briše se i povijest — povremeno izvezi kopiju.</p>
   </div>
 </div>
 
@@ -359,13 +426,22 @@
   </div>
 </div>
 
+<!-- Detail sheet (igra / igrač / tim) -->
+<div class="sheet" id="infoSheet">
+  <div class="grab"></div>
+  <div class="shead"><h3 id="infoTitle"></h3><button class="iconbtn" id="infoClose">✕</button></div>
+  <div class="sbody" id="infoBody"></div>
+  <div class="sfoot" id="infoFoot"></div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"><span id="toastMsg"></span><button id="toastAct" class="hidden"></button></div>
 
 <script>
 "use strict";
 /* ============================ STATE ============================ */
-const LS_KEY = 'belotblok_v1';
+const LS_KEY = 'belotblok_v1';     // stari format: samo trenutna igra (migrira se u DB)
+const DB_KEY = 'belotblok_db_v1';  // { players, teams, games, current }
 const DECL = { terca:{v:20,l:'Terca',s:'20'}, kvarta:{v:50,l:'Kvarta',s:'50'}, niz:{v:100,l:'Niz 5+',s:'100'},
   cetiri_iste:{v:100,l:'4 iste',s:'100'}, cetiri_devetke:{v:150,l:'4 devetke',s:'150'}, cetiri_decka:{v:200,l:'4 dečka',s:'200'} };
 // jačina zvanja za usporedbu (tko broji): "4 iste" jače su od niza iako oboje vrijede 100
@@ -373,14 +449,66 @@ const DRANK = { terca:1, kvarta:2, niz:3, cetiri_iste:4, cetiri_devetke:5, cetir
 const ACC = ['A','B','C'];
 const CSSACC = {A:'var(--a)',B:'var(--b)',C:'var(--c)'};
 
-let S = load();               // persisted game state (or null)
+let DB = loadDB();            // sve spremljeno: igrači, timovi, sve igre (s rukama)
+let S = DB.games.find(g=>g.id===DB.current) || null;   // trenutna igra (objekt iz DB.games)
 let setupDraft = null;        // setup view working state
 let editing = { open:false, index:null, hand:null };
 let lastDeleted = null, toastTimer = null;
 let deferredPrompt = null;
+let view = 'game';            // 'game' | 'stats'
+let statsTab = 'overview', statsMode = 0;
 
-function load(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)); }catch(e){ return null; } }
-function save(){ if(S) localStorage.setItem(LS_KEY, JSON.stringify(S)); }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+function loadDB(){
+  let db=null;
+  try{ db=JSON.parse(localStorage.getItem(DB_KEY)); }catch(e){}
+  if(db && Array.isArray(db.games)) return db;
+  db={ v:1, players:[], teams:[], games:[], current:null };
+  try{
+    const old=JSON.parse(localStorage.getItem(LS_KEY));
+    if(old && Array.isArray(old.hands)){
+      old.id=uid(); old.created=old.created||Date.now(); db.games.push(old); db.current=old.id;
+      localStorage.setItem(DB_KEY, JSON.stringify(db)); localStorage.removeItem(LS_KEY);
+    }
+  }catch(e){}
+  return db;
+}
+function persist(){
+  try{ localStorage.setItem(DB_KEY, JSON.stringify(DB)); }
+  catch(e){ toast('⚠︎ Spremanje nije uspjelo (memorija puna?) — izvezi podatke'); }
+}
+function save(){
+  if(S){ const w=winnerOf(S); S.updated=Date.now(); S.finished = w ? (S.finished||Date.now()) : null; S.winner = w ? w.idx : null; }
+  persist();
+}
+// Trenutna igra bez ijedne ruke ne ide u povijest — makni je kad se prelazi na drugu igru.
+function dropEmptyCurrent(){ if(S && !S.hands.length) DB.games=DB.games.filter(g=>g!==S); }
+
+/* Igrači i timovi. Igrač se prepoznaje po imenu (bez obzira na velika/mala slova). */
+function normName(s){ return (s||'').trim().replace(/\s+/g,' '); }
+function findPlayer(name){ const n=normName(name).toLowerCase(); return n ? DB.players.find(p=>p.name.toLowerCase()===n) : null; }
+function playerById(id){ return DB.players.find(p=>p.id===id) || null; }
+function pname(id){ const p=playerById(id); return p ? p.name : '(obrisan)'; }
+function ensurePlayer(name){
+  const n=normName(name); if(!n) return null;
+  let p=findPlayer(n); if(!p){ p={id:uid(), name:n, created:Date.now()}; DB.players.push(p); }
+  return p.id;
+}
+function pairKey(a,b){ return [a,b].sort().join('|'); }
+function findTeam(a,b){ const k=pairKey(a,b); return DB.teams.find(t=>pairKey(t.playerIds[0],t.playerIds[1])===k) || null; }
+function ensureTeam(a,b,name){
+  let t=findTeam(a,b);
+  if(!t){ t={id:uid(), playerIds:[a,b], name:'', created:Date.now()}; DB.teams.push(t); }
+  if(name) t.name=name;
+  return t;
+}
+function teamLabel(t){ return t.name || t.playerIds.map(pname).join(' & '); }
+function pairLabel(k){ const [a,b]=k.split('|'); const t=findTeam(a,b); return t ? teamLabel(t) : pname(a)+' & '+pname(b); }
+// igrači poredani po zadnjoj igri (najsvježiji prvi), pa abecedno
+function recentPlayers(){
+  const last={}; DB.games.forEach(g=>(g.seatPlayers||[]).forEach(id=>{ if(id) last[id]=Math.max(last[id]||0, g.created||0); }));
+  return DB.players.slice().sort((a,b)=>(last[b.id]||0)-(last[a.id]||0) || a.name.localeCompare(b.name,'hr'));
+}
 function $(id){ return document.getElementById(id); }
 function el(t,c,txt){ const e=document.createElement(t); if(c)e.className=c; if(txt!=null)e.textContent=txt; return e; }
 
@@ -435,7 +563,8 @@ function computeHand(h, S){
   }
   return {final,passed,total,raw,countedDecl,declSum,declMax,declWinner,declTie,declWinnerSide,bela,stig,caller};
 }
-function totals(){ const P=S.parties.length; const t=Array(P).fill(0); S.hands.forEach(h=>{ const r=computeHand(h,S); for(let i=0;i<P;i++) t[i]+=r.final[i]; }); return t; }
+function totalsOf(g){ const P=g.parties.length; const t=Array(P).fill(0); g.hands.forEach(h=>{ const r=computeHand(h,g); for(let i=0;i<P;i++) t[i]+=r.final[i]; }); return t; }
+function totals(){ return totalsOf(S); }
 
 /* Dealer tracking: seats rotate one player per hand. seatTeam maps a seat to its party (for colour). */
 function ensureDealer(){
@@ -447,26 +576,31 @@ function ensureDealer(){
   if(typeof S.firstDealer!=='number') S.firstDealer=0;
 }
 function seatTeam(i){ return S.mode===4 ? (i%2) : i; }           // which party owns seat i
+// tko je zvao: u 2 na 2 igrač (ako je zabilježen), inače strana
+function callerLabel(h,g){ return (g.mode===4 && h.callerSeat!=null && g.seats) ? g.seats[h.callerSeat] : g.parties[h.caller].name; }
 function dealerIdxForHand(n){ const k=S.seats.length; return ((S.firstDealer||0)+n)%k; }  // dealer of hand #n (0-based)
 function currentDealerIdx(){ return dealerIdxForHand(S.hands.length); }                     // upcoming hand's dealer
 function setCurrentDealer(seatIdx){ const k=S.seats.length; S.firstDealer=((seatIdx-S.hands.length)%k+k)%k; save(); }
-function winnerInfo(){
-  const t=totals(); const P=S.parties.length; const over=[];
-  for(let i=0;i<P;i++) if(t[i]>=S.target) over.push(i);
+function winnerOf(g){
+  const t=totalsOf(g); const P=g.parties.length; const over=[];
+  for(let i=0;i<P;i++) if(t[i]>=g.target) over.push(i);
   if(!over.length) return null;
   // highest; tie broken by caller of last hand
   let best=over[0]; for(const i of over) if(t[i]>t[best]) best=i;
   const tied = over.filter(i=>t[i]===t[best]);
-  if(tied.length>1 && S.hands.length){ const lc=S.hands[S.hands.length-1].caller; if(lc!=null && tied.includes(lc)) best=lc; }
+  if(tied.length>1 && g.hands.length){ const lc=g.hands[g.hands.length-1].caller; if(lc!=null && tied.includes(lc)) best=lc; }
   return {idx:best, totals:t};
 }
+function winnerInfo(){ return winnerOf(S); }
 
 /* ============================ RENDER ============================ */
 function render(){
-  const hasGame = !!S;
-  $('viewSetup').classList.toggle('hidden', !!setupDraft ? false : true);
-  $('viewGame').classList.toggle('hidden', !(hasGame && !setupDraft));
-  $('fab').classList.toggle('hidden', !(hasGame && !setupDraft));
+  const hasGame = !!S, inStats = view==='stats';
+  $('viewStats').classList.toggle('hidden', !inStats);
+  $('viewSetup').classList.toggle('hidden', inStats || !setupDraft);
+  $('viewGame').classList.toggle('hidden', inStats || !(hasGame && !setupDraft));
+  $('fab').classList.toggle('hidden', inStats || !(hasGame && !setupDraft));
+  if(inStats){ renderStats(); return; }
   if(setupDraft){ renderSetup(); return; }
   if(!hasGame){ startNewGame(); return; }
   ensureDealer();
@@ -535,7 +669,7 @@ function renderBoard(){
   });
   $('handCount').textContent = S.hands.length ? (S.hands.length+' '+plural(S.hands.length)) : '';
 }
-function doRematch(){ const pref=S?{mode:S.mode,target:S.target,rules:S.rules,parties:S.parties,seats:S.seats}:null; closeSheet(); startNewGame(pref); }
+function doRematch(){ const pref=S?{mode:S.mode,target:S.target,rules:S.rules,parties:S.parties,seats:S.seats,seatPlayers:S.seatPlayers}:null; closeSheet(); startNewGame(pref); }
 
 function renderHist(){
   const wrap=$('hist'); wrap.innerHTML='';
@@ -545,7 +679,7 @@ function renderHist(){
     const r=computeHand(h,S);
     const row=el('div','hrow');
     const pts=S.parties.map((p,i)=>{ const fell=(i===r.caller && !r.passed && r.final[i]===0); return '<span style="color:'+CSSACC[ACC[i]]+'">'+(fell?'—':r.final[i])+'</span>'; }).join('');
-    const callerName = h.caller!=null ? S.parties[h.caller].name : '—';
+    const callerName = h.caller!=null ? callerLabel(h,S) : '—';
     const extras=[];
     if(h.bela!=null) extras.push('bela');
     if(h.stiglja!=null) extras.push('štiglja');
@@ -561,53 +695,38 @@ function renderHist(){
   }
 }
 
-function plural(n){ return (n%10===1&&n%100!==11)?'ruka':((n%10>=2&&n%10<=4&&(n%100<10||n%100>=20))?'ruke':'ruku'); }
+function plural(n, f=['ruka','ruke','ruku']){ return (n%10===1&&n%100!==11)?f[0]:((n%10>=2&&n%10<=4&&(n%100<10||n%100>=20))?f[1]:f[2]); }
 function esc(s){ return (s+'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
 /* ============================ SETUP ============================ */
 function newSetupDraft(){
-  return { mode:4, target:701, names:['Mi','Vi','',''], seatNames:['','','',''], firstDealer:'random', rules:{belaAlways:true, stiglja:90} };
+  // names: imena igrača (2/3) ili imena timova (4, neobavezno); seatNames: igrači po sjedalima (4)
+  return { mode:4, target:701, names:['',''], seatNames:['','','',''], firstDealer:'random', rules:{belaAlways:true, stiglja:90} };
 }
 function seatCountFor(mode){ return mode===4?4:(mode===3?3:2); }
 // names shown in the "prvi dijeli" chips (individual players)
 function seatLabels(d){
-  if(d.mode===4) return d.seatNames.map((s,i)=> (s||'').trim() || ('Igrač '+(i+1)));
-  const pc=partyCount(d.mode); return Array.from({length:pc},(_,i)=> (d.names[i]||'').trim() || ('Igrač '+(i+1)));
+  if(d.mode===4) return d.seatNames.map((s,i)=> normName(s) || ('Igrač '+(i+1)));
+  const pc=partyCount(d.mode); return Array.from({length:pc},(_,i)=> normName(d.names[i]) || ('Igrač '+(i+1)));
 }
 function partyCount(mode){ return mode===3?3:2; }
-function defaultNames(mode){
-  if(mode===4) return ['Mi','Vi'];
-  if(mode===2) return ['Igrač 1','Igrač 2'];
-  return ['Igrač 1','Igrač 2','Igrač 3'];
+function defaultNames(mode){ return Array(partyCount(mode)).fill(''); }
+// polja u koja se upisuju igrači (sjedala u 4, inače imena)
+function playerSlots(d){ return d.mode===4 ? d.seatNames : d.names; }
+// ime tima kad ga korisnik ne upiše: spremljeni tim za taj par, "A & B", ili Mi/Vi
+function autoTeamName(d,t){
+  const a=findPlayer(d.seatNames[t]), b=findPlayer(d.seatNames[t+2]);
+  const team = a&&b ? findTeam(a.id,b.id) : null;
+  if(team) return teamLabel(team);
+  const na=normName(d.seatNames[t]), nb=normName(d.seatNames[t+2]);
+  return na&&nb ? na+' & '+nb : ['Mi','Vi'][t];
 }
+let setupRefs = { slots:[], teams:[] };
 function renderSetup(){
   const d=setupDraft;
   document.querySelectorAll('#setMode .opt').forEach(o=>o.classList.toggle('on', +o.dataset.m===d.mode));
-  // names
-  const n=$('setNames'); n.innerHTML='';
-  const pc=partyCount(d.mode);
-  const labels = d.mode===4?['Tim 1 (npr. Mi)','Tim 2 (npr. Vi)']:Array.from({length:pc},(_,i)=>'Igrač '+(i+1));
-  for(let i=0;i<pc;i++){
-    const w=el('div'); w.innerHTML='<label class="fld">'+labels[i]+'</label>';
-    const inp=el('input'); inp.type='text'; inp.value=d.names[i]||''; inp.maxLength=18;
-    inp.oninput=()=>{ d.names[i]=inp.value; renderFirstDealer(); };
-    w.appendChild(inp); n.appendChild(w);
-  }
-  // seats (only 4-player needs individual seat names; 2/3 reuse player names)
-  const seatsWrap=$('setSeats'); seatsWrap.innerHTML='';
-  if(d.mode===4){
-    seatsWrap.style.display='';
-    for(let i=0;i<4;i++){
-      const team = i%2; // seat parity = team
-      const w=el('div'); w.innerHTML='<label class="fld">Sjedalo '+(i+1)+' · <span style="color:'+CSSACC[ACC[team]]+'">'+esc((d.names[team]||('Tim '+(team+1))))+'</span></label>';
-      const inp=el('input'); inp.type='text'; inp.value=d.seatNames[i]||''; inp.maxLength=14; inp.placeholder='ime igrača';
-      inp.oninput=()=>{ d.seatNames[i]=inp.value; renderFirstDealer(); };
-      w.appendChild(inp); seatsWrap.appendChild(w);
-    }
-  } else {
-    seatsWrap.style.display='none';
-  }
-  renderFirstDealer();
+  renderPlayerInputs();
+  $('setSeatNote').classList.toggle('hidden', d.mode!==4);
   // target
   const std=[351,501,701,1001];
   document.querySelectorAll('#setTarget .opt').forEach(o=>o.classList.toggle('on', +o.dataset.t===d.target));
@@ -615,6 +734,83 @@ function renderSetup(){
   // rules
   $('ruleBela').classList.toggle('on', d.rules.belaAlways);
   $('stigVal').textContent=d.rules.stiglja;
+}
+function slotInput(i, placeholder){
+  const d=setupDraft, slots=playerSlots(d);
+  const inp=el('input'); inp.type='text'; inp.value=slots[i]||''; inp.maxLength=18; inp.placeholder=placeholder;
+  inp.setAttribute('list','dlPlayers'); inp.autocapitalize='words'; inp.autocomplete='off';
+  inp.oninput=()=>{ slots[i]=inp.value; onSlotsChanged(); };
+  setupRefs.slots[i]=inp;
+  return inp;
+}
+function renderPlayerInputs(){
+  const d=setupDraft, n=$('setNames'); n.innerHTML=''; setupRefs={slots:[], teams:[]};
+  $('dlPlayers').innerHTML = DB.players.map(p=>'<option value="'+esc(p.name)+'">').join('');
+  if(d.mode===4){
+    for(let t=0;t<2;t++){
+      const box=el('div','teambox'); box.style.borderLeft='4px solid '+CSSACC[ACC[t]];
+      box.innerHTML='<label class="fld" style="color:'+CSSACC[ACC[t]]+'">Tim '+(t+1)+' · ime tima (neobavezno)</label>';
+      const tn=el('input'); tn.type='text'; tn.value=d.names[t]||''; tn.maxLength=18; tn.placeholder=autoTeamName(d,t);
+      tn.oninput=()=>{ d.names[t]=tn.value; };
+      setupRefs.teams[t]=tn; box.appendChild(tn);
+      const g=el('div','grid c2'); g.style.marginTop='8px';
+      [t, t+2].forEach(s=>{ const w=el('div'); w.appendChild(el('label','fld','Sjedalo '+(s+1))); w.appendChild(slotInput(s,'ime igrača')); g.appendChild(w); });
+      box.appendChild(g); n.appendChild(box);
+    }
+  } else {
+    const g=el('div','grid');
+    for(let i=0;i<partyCount(d.mode);i++){ const w=el('div'); w.appendChild(el('label','fld','Igrač '+(i+1))); w.appendChild(slotInput(i,'Igrač '+(i+1))); g.appendChild(w); }
+    n.appendChild(g);
+  }
+  renderQuick(); renderFirstDealer();
+}
+function onSlotsChanged(){
+  const d=setupDraft, slots=playerSlots(d);
+  setupRefs.slots.forEach((inp,i)=>{ if(inp && document.activeElement!==inp) inp.value=slots[i]||''; });
+  setupRefs.teams.forEach((tn,t)=>{ tn.placeholder=autoTeamName(d,t); });
+  renderQuick(); renderFirstDealer();
+}
+// brzi odabir: dodir na spremljenog igrača upisuje ga u prvo prazno mjesto (ponovni dodir ga makne)
+function renderQuick(){
+  const d=setupDraft, wrap=$('setQuick'); wrap.innerHTML='';
+  const slots=playerSlots(d), cnt=seatCountFor(d.mode);
+  const used=slots.slice(0,cnt).map(s=>normName(s).toLowerCase());
+  if(d.mode===4 && DB.teams.length){
+    wrap.appendChild(el('label','fld','Spremljeni timovi'));
+    const q=el('div','quick');
+    DB.teams.forEach(team=>{
+      const names=team.playerIds.map(pname), low=names.map(x=>x.toLowerCase());
+      const at=[0,1].find(t=>[used[t],used[t+2]].sort().join('|')===low.slice().sort().join('|'));
+      const c=el('span','chip'+(at!=null?' on':''),'👥 '+teamLabel(team));
+      c.onclick=()=>{
+        if(at!=null){ slots[at]=''; slots[at+2]=''; }
+        else {
+          for(let s=0;s<4;s++) if(low.includes(normName(slots[s]).toLowerCase())) slots[s]='';   // igrač ne može biti dvaput
+          const t=[0,1].find(t=>!normName(slots[t]) && !normName(slots[t+2])); const tt = t==null ? 1 : t;
+          slots[tt]=names[0]; slots[tt+2]=names[1]; d.names[tt]='';
+          if(setupRefs.teams[tt]) setupRefs.teams[tt].value='';
+        }
+        onSlotsChanged();
+      };
+      q.appendChild(c);
+    });
+    wrap.appendChild(q);
+  }
+  if(DB.players.length){
+    wrap.appendChild(el('label','fld','Spremljeni igrači — dodirni za upis'));
+    const q=el('div','quick');
+    recentPlayers().forEach(p=>{
+      const idx=used.indexOf(p.name.toLowerCase());
+      const c=el('span','chip'+(idx>=0?' on':''),p.name);
+      c.onclick=()=>{
+        if(idx>=0) slots[idx]='';
+        else { const free=used.findIndex(u=>!u); if(free<0){ toast('Sva mjesta su popunjena'); return; } slots[free]=p.name; }
+        onSlotsChanged();
+      };
+      q.appendChild(c);
+    });
+    wrap.appendChild(q);
+  }
 }
 function renderFirstDealer(){
   const d=setupDraft, lbls=seatLabels(d), wrap=$('setFirstDealer'); wrap.innerHTML='';
@@ -635,20 +831,42 @@ function bindSetup(){
   document.querySelectorAll('[data-stig]').forEach(b=>b.onclick=()=>{ setupDraft.rules.stiglja=Math.max(0,setupDraft.rules.stiglja+(+b.dataset.stig)); renderSetup(); });
   $('btnStart').onclick=()=>{
     const d=setupDraft, pc=partyCount(d.mode);
-    const parties=[]; for(let i=0;i<pc;i++) parties.push({name:(d.names[i]||'').trim()||('Igrač '+(i+1))});
-    const seats=seatLabels(d), k=seats.length;
+    const typed=playerSlots(d).slice(0,seatCountFor(d.mode)).map(normName);
+    const low=typed.filter(Boolean).map(x=>x.toLowerCase());
+    if(new Set(low).size!==low.length){ toast('Isti igrač je upisan dvaput'); return; }
+    const seatPlayers=typed.map(ensurePlayer);   // spremi nove igrače
+    const seats=seatLabels(d).map((l,i)=>seatPlayers[i] ? pname(seatPlayers[i]) : l), k=seats.length;   // spremljeni oblik imena
+    let parties;
+    if(d.mode===4){
+      parties=[0,1].map(t=>{
+        const a=seatPlayers[t], b=seatPlayers[t+2], own=normName(d.names[t]);
+        const team = a&&b ? ensureTeam(a,b,own) : null;
+        return { name: own || (team?teamLabel(team):['Mi','Vi'][t]), playerIds:[a,b].filter(Boolean), teamId: team?team.id:null };
+      });
+    } else {
+      parties=seatPlayers.map((id,i)=>({ name: seats[i], playerIds: id?[id]:[] }));
+    }
     const firstDealer = d.firstDealer==='random' ? Math.floor(Math.random()*k) : clamp(d.firstDealer,0,k-1);
-    S={ mode:d.mode, target:d.target, rules:{...d.rules}, parties, seats, firstDealer, hands:[], created:Date.now() };
+    dropEmptyCurrent();
+    S={ id:uid(), mode:d.mode, target:d.target, rules:{...d.rules}, parties, seats, seatPlayers, firstDealer, hands:[], created:Date.now() };
+    DB.games.push(S); DB.current=S.id;
     setupDraft=null; save(); render(); toast('Dijeli: '+seats[firstDealer]+' 🃏');
   };
-  $('btnCancelSetup').onclick=()=>{ setupDraft=null; if(!S){ /* nothing */ } render(); if(!S) startNewGame(); };
+  $('btnCancelSetup').onclick=()=>{ setupDraft=null; render(); };
 }
 function startNewGame(pref){
   setupDraft = newSetupDraft();
   if(pref){
     setupDraft.mode=pref.mode; setupDraft.target=pref.target; setupDraft.rules={...pref.rules};
-    setupDraft.names=pref.parties.map(p=>p.name);
-    if(pref.mode===4 && Array.isArray(pref.seats)) setupDraft.seatNames=[0,1,2,3].map(i=>pref.seats[i]||'');
+    // igrači iz prošle igre (trenutna imena); starije igre bez ID-eva koriste upisana imena
+    const ids=pref.seatPlayers||[];
+    const nameAt=(i,fallback)=> ids[i] ? pname(ids[i]) : (/^(Igrač \d|.* [①②])$/.test(fallback||'') ? '' : (fallback||''));
+    if(pref.mode===4){
+      setupDraft.seatNames=[0,1,2,3].map(i=>nameAt(i,(pref.seats||[])[i]));
+      setupDraft.names=pref.parties.map((p,t)=> (p.teamId || p.name===['Mi','Vi'][t]) ? '' : p.name);
+    } else {
+      setupDraft.names=pref.parties.map((p,i)=>nameAt(i,p.name));
+    }
     setupDraft.firstDealer='random';   // fresh draw for the rematch
   }
   render();
@@ -657,7 +875,7 @@ function startNewGame(pref){
 /* ============================ HAND SHEET ============================ */
 function blankHand(){
   const P=S.parties.length;
-  return { caller:null, cards:Array(P).fill(0), decl:Array.from({length:P},()=>({})), bela:null, stiglja:null, zvanjaWinner:null, zvanjaSide:null };
+  return { caller:null, callerSeat:null, cards:Array(P).fill(0), decl:Array.from({length:P},()=>({})), bela:null, stiglja:null, zvanjaWinner:null, zvanjaSide:null };
 }
 let declActive = 0; // which party we add declarations to
 
@@ -679,7 +897,16 @@ function buildHandUI(){
   const P=S.parties.length, h=editing.hand;
   // caller
   const cs=$('callerSeg'); cs.innerHTML='';
-  S.parties.forEach((p,i)=>{ const o=el('div','opt'+(h.caller===i?' on':''), p.name); o.onclick=()=>{ h.caller=i; declActive=i; buildHandUI(); }; cs.appendChild(o); });
+  if(S.mode===4){
+    // 2 na 2: bira se igrač (sjedalo); strana koja zove je njegov tim
+    [0,2,1,3].forEach(seat=>{ const t=seatTeam(seat), on=h.callerSeat===seat;
+      const o=el('div','opt'+(on?' on':''), S.seats[seat]); if(!on) o.style.color=CSSACC[ACC[t]];
+      o.onclick=()=>{ h.callerSeat=seat; h.caller=t; declActive=t; buildHandUI(); }; cs.appendChild(o); });
+    if(h.caller!=null && h.callerSeat==null)
+      cs.appendChild(el('div','small muted','Zvao je tim '+S.parties[h.caller].name+' — odaberi igrača.'));
+  } else {
+    S.parties.forEach((p,i)=>{ const o=el('div','opt'+(h.caller===i?' on':''), p.name); o.onclick=()=>{ h.caller=i; declActive=i; buildHandUI(); }; cs.appendChild(o); });
+  }
 
   // points
   buildPoints();
@@ -837,7 +1064,7 @@ function validHand(h){ return h.caller!=null && pointsValid(h); }
 function saveHand(){
   const h=editing.hand;
   if(!validHand(h)){ toast('Zbroj štih bodova mora biti 162'); return; }
-  if(editing.index==null) S.hands.push(h); else S.hands[editing.index]=h;
+  if(editing.index==null){ h.t=Date.now(); S.hands.push(h); } else S.hands[editing.index]=h;
   save(); closeSheet(); render();
   toast(editing.index==null?'Ruka dodana':'Ruka spremljena');
 }
@@ -846,6 +1073,357 @@ function deleteHand(){
   lastDeleted={index:editing.index, hand:S.hands[editing.index]};
   S.hands.splice(editing.index,1); save(); closeSheet(); render();
   toast('Ruka obrisana', 'Poništi', ()=>{ S.hands.splice(lastDeleted.index,0,lastDeleted.hand); save(); render(); });
+}
+
+/* ============================ STATISTIKA ============================ */
+function playedGames(mode){ return DB.games.filter(g=>g.hands.length && (!mode || g.mode===mode)).sort((a,b)=>(a.created||0)-(b.created||0)); }
+function members(g,i){ return (g.parties[i].playerIds||[]).filter(Boolean); }
+function pairOf(g,i){ const m=members(g,i); return (g.mode===4 && m.length===2) ? pairKey(m[0],m[1]) : null; }
+function blankAgg(){ return {games:0,finished:0,wins:0,hands:0,points:0,calls:0,passed:0,decl:0,bela:0,stig:0,best:0,form:[],streak:0,bestStreak:0,partners:{},opps:{},declCounts:{}}; }
+
+/* Sve statistike iz spremljenih igara. U igri 2 na 2 bodovi pripadaju timu pa se pripisuju oboma
+   igračima; zvanje aduta ide igraču koji je zvao (starije ruke bez zabilježenog igrača — oboma). */
+function buildStats(mode){
+  const games=playedGames(mode), players={}, teams={}, rec={};
+  const ov={games:games.length,finished:0,hands:0,calls:0,passed:0,bela:0,stig:0,declCounts:{},durations:[]};
+  const agg=(map,key)=>map[key]||(map[key]=blankAgg());
+  const better=(key,v,info,lower)=>{ const c=rec[key]; if(!c || (lower ? v<c.v : v>c.v)) rec[key]={v,...info}; };
+  const addDecl=(into,d)=>{ for(const k in d||{}) into[k]=(into[k]||0)+d[k]; };
+  for(const g of games){
+    const N=g.parties.length, res=g.hands.map(h=>computeHand(h,g)), win=winnerOf(g), tot=totalsOf(g);
+    const who=i=>g.parties[i].name;
+    if(win) ov.finished++;
+    ov.hands+=g.hands.length;
+    for(let i=0;i<N;i++){
+      const mine=members(g,i), pk=pairOf(g,i), won = win ? win.idx===i : null;
+      // [agregat, id igrača ili null za tim]
+      const targets=mine.map(id=>[agg(players,id),id]); if(pk) targets.push([agg(teams,pk),null]);
+      targets.forEach(([a,pid])=>{
+        a.games++;
+        if(win){ a.finished++; a.form.push(won?'W':'L'); if(won){ a.wins++; a.streak++; a.bestStreak=Math.max(a.bestStreak,a.streak); } else a.streak=0; }
+        g.hands.forEach((h,k)=>{ const r=res[k];
+          a.hands++; a.points+=r.final[i]; a.best=Math.max(a.best,r.final[i]);
+          if(h.caller===i && (pid==null || h.callerSeat==null || (g.seatPlayers||[])[h.callerSeat]===pid)){ a.calls++; if(r.passed) a.passed++; }
+          a.decl+=r.countedDecl[i]; if(r.bela[i]) a.bela++; if(r.stig[i]) a.stig++;
+          addDecl(a.declCounts, h.decl[i]);
+        });
+      });
+      mine.forEach(id=>mine.forEach(o=>{ if(o===id) return;
+        const x=players[id].partners[o]||(players[id].partners[o]={games:0,finished:0,wins:0});
+        x.games++; if(win){ x.finished++; if(won) x.wins++; } }));
+      for(let j=0;j<N;j++) if(j!==i){
+        const rel=(a,o)=>{ const x=a.opps[o]||(a.opps[o]={games:0,wins:0,losses:0}); x.games++; if(win){ if(win.idx===i) x.wins++; else if(win.idx===j) x.losses++; } };
+        mine.forEach(id=>members(g,j).forEach(o=>rel(players[id],o)));
+        const pj=pairOf(g,j); if(pk && pj) rel(teams[pk],pj);
+      }
+      const falls=g.hands.filter((h,k)=>h.caller===i && !res[k].passed).length;
+      if(falls) better('mostFalls', falls, {who:who(i), g});
+    }
+    g.hands.forEach((h,k)=>{ const r=res[k];
+      if(h.caller!=null){ ov.calls++; if(r.passed) ov.passed++; }
+      if(h.bela!=null) ov.bela++;
+      if(h.stiglja!=null) ov.stig++;
+      for(let i=0;i<N;i++){
+        addDecl(ov.declCounts, h.decl[i]);
+        better('bestHand', r.final[i], {who:who(i), g});
+        if(r.countedDecl[i]) better('bestDecl', r.countedDecl[i], {who:who(i), g});
+      }
+    });
+    better('longest', g.hands.length, {who:g.parties.map(p=>p.name).join(' · '), g});
+    if(win){
+      const margin=tot[win.idx]-Math.max(...tot.filter((_,i)=>i!==win.idx));
+      better('bigWin', margin, {who:who(win.idx), g});
+      better('closeWin', margin, {who:who(win.idx), g}, true);
+      better('shortest', g.hands.length, {who:who(win.idx), g}, true);
+      // preokret: najveći zaostatak koji je pobjednik u toj igri nadoknadio
+      const run=Array(N).fill(0); let deficit=0;
+      res.forEach(r=>{ for(let i=0;i<N;i++) run[i]+=r.final[i]; deficit=Math.max(deficit, Math.max(...run.filter((_,i)=>i!==win.idx))-run[win.idx]); });
+      if(deficit>0) better('comeback', deficit, {who:who(win.idx), g});
+      const last=g.hands[g.hands.length-1];
+      if(last.t && g.created){ const dur=last.t-g.created; ov.durations.push(dur); better('fastest', dur, {who:who(win.idx), g}, true); }
+    }
+  }
+  DB.players.forEach(p=>{ const a=players[p.id]; if(a && a.bestStreak>1) better('streak', a.bestStreak, {who:p.name}); });
+  return {games, ov, players, teams, rec};
+}
+
+function pct(a,b){ return b ? Math.round(a/b*100)+'%' : '—'; }
+function avg(a,b){ return b ? (Math.round(a/b*10)/10).toString().replace('.',',') : '—'; }
+function fmtDate(ts,withTime){ if(!ts) return '—'; const d=new Date(ts); return d.toLocaleDateString('hr-HR')+(withTime?' '+d.toLocaleTimeString('hr-HR',{hour:'2-digit',minute:'2-digit'}):''); }
+function fmtDur(ms){ const m=Math.max(1,Math.round(ms/60000)), h=Math.floor(m/60); return h ? h+' h '+String(m%60).padStart(2,'0')+' min' : m+' min'; }
+function modeLabel(m){ return m===4 ? '2 na 2' : m+' igrača'; }
+function sec(title){ const h=el('h2','sec',title); h.style.marginTop='20px'; return h; }
+function tiles(items){
+  const w=el('div','tiles');
+  items.forEach(([v,k,s])=>{ const t=el('div','tile'); t.appendChild(el('div','v',String(v))); t.appendChild(el('div','k',k)); if(s) t.appendChild(el('div','s',s)); w.appendChild(t); });
+  return w;
+}
+function lrow(name, sub, big, onclick, barPct){
+  const r=el('div','lrow'), m=el('div','main');
+  m.appendChild(el('div','nm',name)); if(sub) m.appendChild(el('div','sub',sub));
+  if(barPct!=null){ const b=el('div','bar'); b.innerHTML='<i style="width:'+barPct+'%"></i>'; m.appendChild(b); }
+  r.appendChild(m); if(big!=null) r.appendChild(el('div','big',big));
+  if(onclick) r.onclick=onclick;
+  return r;
+}
+function formRow(form){ const f=el('div','form'); form.slice(-10).forEach(x=>f.appendChild(el('i',x,x==='W'?'✓':'✗'))); return f; }
+function aggSub(a){ return a.games+' '+plural(a.games,['igra','igre','igara'])+' · '+a.wins+' '+plural(a.wins,['pobjeda','pobjede','pobjeda'])+' · Ø '+avg(a.points,a.hands)+' po ruci'; }
+function emptyMsg(html){ const e=el('div','empty'); e.innerHTML=html; return e; }
+
+function renderStats(){
+  document.querySelectorAll('#statsTabs .tab').forEach(t=>t.classList.toggle('on', t.dataset.tab===statsTab));
+  document.querySelectorAll('#statsMode .opt').forEach(o=>o.classList.toggle('on', +o.dataset.m===statsMode));
+  $('statsMode').classList.toggle('hidden', statsTab==='teams');   // timovi postoje samo u 2 na 2
+  const body=$('statsBody'); body.innerHTML='';
+  const st=buildStats(statsTab==='teams' ? 4 : statsMode);
+  ({overview:renderOverview, players:renderPlayersTab, teams:renderTeamsTab, history:renderHistoryTab})[statsTab](st, body);
+}
+
+const RECORDS=[
+  ['bestHand','Najviše bodova u jednoj ruci', v=>v],
+  ['bestDecl','Najveća zvanja u jednoj ruci', v=>v],
+  ['bigWin','Najuvjerljivija pobjeda', v=>'+'+v],
+  ['closeWin','Najtješnja pobjeda', v=>'+'+v],
+  ['comeback','Najveći preokret', v=>'zaostatak '+v],
+  ['streak','Najduži niz pobjeda', v=>v+' zaredom'],
+  ['shortest','Najkraća igra', v=>v+' '+plural(v)],
+  ['longest','Najduža igra', v=>v+' '+plural(v)],
+  ['fastest','Najbrža igra', v=>fmtDur(v)],
+  ['mostFalls','Najviše padova u jednoj igri', v=>v+'×'],
+];
+function renderOverview(st, body){
+  const ov=st.ov;
+  if(!ov.games){ body.appendChild(emptyMsg('Još nema odigranih igara.<br>Statistika se puni sama dok igrate.')); return; }
+  const avgDur = ov.durations.length ? fmtDur(ov.durations.reduce((a,b)=>a+b,0)/ov.durations.length) : '—';
+  body.appendChild(tiles([
+    [ov.games, plural(ov.games,['igra','igre','igara']), 'završeno '+ov.finished],
+    [ov.hands, plural(ov.hands)+' ukupno', 'Ø '+avg(ov.hands,ov.games)+' po igri'],
+    [pct(ov.passed,ov.calls), 'zvač prolazi', (ov.calls-ov.passed)+' padova'],
+    [ov.stig, plural(ov.stig,['štiglja','štiglje','štiglja']), pct(ov.stig,ov.hands)+' ruku'],
+    [ov.bela, 'bela', pct(ov.bela,ov.hands)+' ruku'],
+    [avgDur, 'Ø trajanje igre', ov.durations.length ? 'od '+ov.durations.length+' završenih' : 'bilježi se od sad'],
+  ]));
+
+  // ljestvica: najviše pobjeda (pa postotak)
+  const ranked=DB.players.map(p=>({p,a:st.players[p.id]})).filter(x=>x.a && x.a.finished).sort((x,y)=>y.a.wins-x.a.wins || y.a.wins/y.a.finished-x.a.wins/x.a.finished);
+  if(ranked.length){
+    body.appendChild(sec('Ljestvica'));
+    const l=el('div','list');
+    ranked.slice(0,5).forEach((x,n)=>l.appendChild(lrow(['🥇','🥈','🥉','4.','5.'][n]+' '+x.p.name, aggSub(x.a), pct(x.a.wins,x.a.finished), ()=>openPlayerSheet(x.p.id))));
+    body.appendChild(l);
+  }
+
+  body.appendChild(sec('Rekordi'));
+  const rc=el('div','card pad'); rc.style.padding='4px 14px';
+  RECORDS.forEach(([k,label,fmt])=>{ const r=st.rec[k]; if(!r) return;
+    const row=el('div','rec');
+    row.innerHTML='<div><div class="rt">'+label+'</div><div class="rw">'+esc(r.who)+(r.g?' · '+fmtDate(r.g.created):'')+'</div></div><div class="rv">'+esc(fmt(r.v))+'</div>';
+    if(r.g) row.onclick=()=>openGameSheet(r.g.id);
+    rc.appendChild(row); });
+  body.appendChild(rc);
+
+  const dc=ov.declCounts, keys=Object.keys(DECL), mx=Math.max(1,...keys.map(k=>dc[k]||0));
+  body.appendChild(sec('Prijavljena zvanja'));
+  const dl=el('div','card pad');
+  keys.forEach(k=>{ const n=dc[k]||0;
+    const r=el('div'); r.style.marginBottom='10px';
+    r.innerHTML='<div class="row spread small"><b>'+DECL[k].l+' <span class="muted">('+DECL[k].s+')</span></b><b>'+n+'<span class="muted"> · 1 u '+(n?Math.round(ov.hands/n):'—')+' ruku</span></b></div><div class="bar"><i style="width:'+Math.round(n/mx*100)+'%"></i></div>';
+    dl.appendChild(r); });
+  body.appendChild(dl);
+}
+
+function renderPlayersTab(st, body){
+  const add=el('div','row'); add.style.marginBottom='12px';
+  const inp=el('input'); inp.type='text'; inp.placeholder='Ime novog igrača'; inp.maxLength=18; inp.autocapitalize='words';
+  const b=el('button','btn gold','＋ Dodaj');
+  b.onclick=()=>{ const n=normName(inp.value); if(!n) return; if(findPlayer(n)){ toast('Igrač već postoji'); return; } ensurePlayer(n); persist(); render(); toast('Dodan: '+n); };
+  add.appendChild(inp); add.appendChild(b); body.appendChild(add);
+  if(!DB.players.length){ body.appendChild(emptyMsg('Nema spremljenih igrača.<br>Igrači se spremaju sami kad ih upišeš pri novoj igri.')); return; }
+  const l=el('div','list');
+  DB.players.map(p=>({p,a:st.players[p.id]||blankAgg()}))
+    .sort((x,y)=>y.a.wins-x.a.wins || y.a.games-x.a.games || x.p.name.localeCompare(y.p.name,'hr'))
+    .forEach(({p,a})=>l.appendChild(lrow(p.name, a.games?aggSub(a):'nema igara', a.finished?pct(a.wins,a.finished):'', ()=>openPlayerSheet(p.id), a.finished?Math.round(a.wins/a.finished*100):null)));
+  body.appendChild(l);
+}
+
+function renderTeamsTab(st, body){
+  if(DB.players.length>=2){
+    const card=el('div','card pad');
+    card.appendChild(el('label','fld','Složi tim od dva igrača'));
+    const g=el('div','grid c2');
+    const sel=()=>{ const s=el('select'); s.innerHTML='<option value="">— igrač —</option>'+recentPlayers().map(p=>'<option value="'+p.id+'">'+esc(p.name)+'</option>').join(''); return s; };
+    const s1=sel(), s2=sel(); g.appendChild(s1); g.appendChild(s2); card.appendChild(g);
+    const row=el('div','row'); row.style.marginTop='8px';
+    const nm=el('input'); nm.type='text'; nm.placeholder='Ime tima (neobavezno)'; nm.maxLength=18;
+    const b=el('button','btn gold','＋ Tim');
+    b.onclick=()=>{
+      if(!s1.value || !s2.value || s1.value===s2.value){ toast('Odaberi dva različita igrača'); return; }
+      const ex=findTeam(s1.value,s2.value); ensureTeam(s1.value,s2.value,normName(nm.value)); persist(); render();
+      toast(ex?'Tim ažuriran':'Tim spremljen');
+    };
+    row.appendChild(nm); row.appendChild(b); card.appendChild(row);
+    body.appendChild(card);
+  }
+  if(!DB.teams.length){ body.appendChild(emptyMsg('Nema spremljenih timova.<br>Tim se sprema sam kad u igri 2 na 2 upišeš oba igrača,<br>ili ga složi gore.')); return; }
+  body.appendChild(sec('Timovi'));
+  const l=el('div','list');
+  DB.teams.map(t=>({t,a:st.teams[pairKey(t.playerIds[0],t.playerIds[1])]||blankAgg()}))
+    .sort((x,y)=>y.a.wins-x.a.wins || y.a.games-x.a.games)
+    .forEach(({t,a})=>l.appendChild(lrow('👥 '+teamLabel(t), (t.name?t.playerIds.map(pname).join(' & ')+' · ':'')+(a.games?aggSub(a):'nema igara'), a.finished?pct(a.wins,a.finished):'', ()=>openTeamSheet(t.id), a.finished?Math.round(a.wins/a.finished*100):null)));
+  body.appendChild(l);
+}
+
+function renderHistoryTab(st, body){
+  const games=st.games.slice().reverse();
+  if(!games.length){ body.appendChild(emptyMsg('Još nema spremljenih igara.')); return; }
+  const l=el('div','list');
+  games.forEach(g=>{
+    const win=winnerOf(g), t=totalsOf(g);
+    const score=g.parties.map((p,i)=>(win&&win.idx===i?'🏆 ':'')+p.name+' '+t[i]).join('  ·  ');
+    const status = g===S ? 'trenutna igra' : (win ? 'gotova' : 'nedovršena');
+    l.appendChild(lrow(score, fmtDate(g.created,true)+' · '+modeLabel(g.mode)+' · do '+g.target+' · '+g.hands.length+' '+plural(g.hands.length)+' · '+status, null, ()=>openGameSheet(g.id)));
+  });
+  body.appendChild(l);
+}
+
+/* ---------- detalji (zajednički sheet) ---------- */
+function openInfo(title, fill, foot){
+  $('infoTitle').textContent=title;
+  const b=$('infoBody'), f=$('infoFoot'); b.innerHTML=''; f.innerHTML='';
+  fill(b); foot(f);
+  if(openSheetId && openSheetId!=='infoSheet') $(openSheetId).classList.remove('on');
+  openSheet('infoSheet');
+}
+function relList(map, nameOf, fmt){
+  const l=el('div','list');
+  Object.keys(map).map(k=>({k,x:map[k]})).sort((a,b)=>b.x.games-a.x.games).forEach(({k,x})=>l.appendChild(lrow(nameOf(k), x.games+' '+plural(x.games,['igra','igre','igara']), fmt(x))));
+  return l;
+}
+function aggTiles(a){
+  return tiles([
+    [a.games, plural(a.games,['igra','igre','igara']), 'završeno '+a.finished],
+    [pct(a.wins,a.finished), 'pobjeda', a.wins+' od '+a.finished],
+    [avg(a.points,a.hands), 'Ø bodova po ruci', a.hands+' '+plural(a.hands)],
+    [a.calls, 'zvao adut', pct(a.calls,a.hands)+' ruku'],
+    [pct(a.passed,a.calls), 'prolaz kad zove', (a.calls-a.passed)+' padova'],
+    [a.best, 'najbolja ruka', ''],
+    [a.decl, 'bodova od zvanja', ''],
+    [a.bela, 'bela', ''],
+    [a.stig, plural(a.stig,['štiglja','štiglje','štiglja']), ''],
+  ]);
+}
+function declChips(dc){
+  const w=el('div','quick'); const ks=Object.keys(DECL).filter(k=>dc[k]);
+  ks.forEach(k=>w.appendChild(el('span','chip',DECL[k].l+' × '+dc[k])));
+  if(!ks.length) w.appendChild(el('span','small muted','Nema prijavljenih zvanja.'));
+  return w;
+}
+function renameRow(value, onSave){
+  const r=el('div','row'); r.style.marginTop='18px';
+  const inp=el('input'); inp.type='text'; inp.value=value; inp.maxLength=18; inp.placeholder='ime';
+  const b=el('button','btn','Preimenuj'); b.onclick=()=>onSave(normName(inp.value));
+  r.appendChild(inp); r.appendChild(b); return r;
+}
+
+function openPlayerSheet(id){
+  const p=playerById(id); if(!p) return;
+  const st=buildStats(statsMode), a=st.players[id]||blankAgg();
+  openInfo(p.name, b=>{
+    if(statsMode) b.appendChild(el('div','small muted','Samo igre: '+modeLabel(statsMode)));
+    b.appendChild(aggTiles(a));
+    if(a.form.length){ b.appendChild(sec('Forma (zadnjih '+Math.min(10,a.form.length)+')')); b.appendChild(formRow(a.form));
+      b.appendChild(el('div','small muted','Niz pobjeda: trenutno '+a.streak+', najdulji '+a.bestStreak)); b.lastChild.style.marginTop='6px'; }
+    if(Object.keys(a.partners).length){ b.appendChild(sec('Suigrači')); b.appendChild(relList(a.partners, pname, x=>pct(x.wins,x.finished))); }
+    if(Object.keys(a.opps).length){ b.appendChild(sec('Protiv (pobjede : porazi)')); b.appendChild(relList(a.opps, pname, x=>x.wins+' : '+x.losses)); }
+    b.appendChild(sec('Prijavljena zvanja')); b.appendChild(declChips(a.declCounts));
+    if(Object.keys(a.partners).length) b.appendChild(el('p','small muted','U igri 2 na 2 bodovi, zvanja, bela i štiglja vode se po timu pa se pripisuju oboma igračima; zvao adut i prolaz su osobni.'));
+    b.appendChild(renameRow(p.name, n=>{
+      if(!n) return; const o=findPlayer(n); if(o && o!==p){ toast('To ime već postoji'); return; }
+      p.name=n; persist(); closeSheet(); render(); toast('Preimenovano');
+    }));
+  }, f=>{
+    const del=el('button','btn danger block','🗑 Obriši igrača');
+    del.onclick=()=>{
+      if(!confirm('Obrisati igrača '+p.name+'? Odigrane igre ostaju u povijesti, ali on nestaje s ljestvice i iz timova.')) return;
+      DB.players=DB.players.filter(x=>x!==p); DB.teams=DB.teams.filter(t=>!t.playerIds.includes(id));
+      persist(); closeSheet(); render(); toast('Igrač obrisan');
+    };
+    f.appendChild(del);
+  });
+}
+
+function openTeamSheet(teamId){
+  const t=DB.teams.find(x=>x.id===teamId); if(!t) return;
+  const st=buildStats(4), a=st.teams[pairKey(t.playerIds[0],t.playerIds[1])]||blankAgg();
+  openInfo('👥 '+teamLabel(t), b=>{
+    b.appendChild(el('div','small muted',t.playerIds.map(pname).join(' & ')));
+    b.lastChild.style.marginBottom='10px';
+    b.appendChild(aggTiles(a));
+    if(a.form.length){ b.appendChild(sec('Forma (zadnjih '+Math.min(10,a.form.length)+')')); b.appendChild(formRow(a.form)); }
+    if(Object.keys(a.opps).length){ b.appendChild(sec('Protiv timova (pobjede : porazi)')); b.appendChild(relList(a.opps, pairLabel, x=>x.wins+' : '+x.losses)); }
+    b.appendChild(sec('Prijavljena zvanja')); b.appendChild(declChips(a.declCounts));
+    b.appendChild(renameRow(t.name, n=>{ t.name=n; persist(); closeSheet(); render(); toast(n?'Preimenovano':'Ime tima uklonjeno'); }));
+  }, f=>{
+    const del=el('button','btn danger block','🗑 Obriši tim');
+    del.onclick=()=>{ if(!confirm('Obrisati tim '+teamLabel(t)+'? Igrači i povijest ostaju.')) return;
+      DB.teams=DB.teams.filter(x=>x!==t); persist(); closeSheet(); render(); toast('Tim obrisan'); };
+    f.appendChild(del);
+  });
+}
+
+function openGameSheet(id){
+  const g=DB.games.find(x=>x.id===id); if(!g) return;
+  const win=winnerOf(g), N=g.parties.length;
+  openInfo(modeLabel(g.mode)+' · '+fmtDate(g.created,true), b=>{
+    const info=el('div','small muted');
+    info.textContent='Igra do '+g.target+' · '+g.hands.length+' '+plural(g.hands.length)+' · '+(win?'🏆 '+g.parties[win.idx].name:'nedovršena');
+    b.appendChild(info);
+    if(g.mode===4) g.parties.forEach((p,i)=>{ if(p.playerIds && p.playerIds.length && p.name!==p.playerIds.map(pname).join(' & ')){ const d=el('div','small'); d.innerHTML='<span class="dot'+ACC[i]+'">●</span> <b>'+esc(p.name)+'</b>: '+esc(p.playerIds.map(pname).join(' & ')); b.appendChild(d); } });
+    // blok: bodovi svake ruke + tekući zbroj
+    const tb=el('table','blok'); tb.style.marginTop='10px';
+    let html='<thead><tr><th>#</th>'+g.parties.map((p,i)=>'<th style="color:'+CSSACC[ACC[i]]+'">'+esc(p.name)+'</th>').join('')+'</tr></thead><tbody>';
+    const run=Array(N).fill(0);
+    g.hands.forEach((h,k)=>{ const r=computeHand(h,g);
+      html+='<tr><td class="n">'+(k+1)+'</td>'+g.parties.map((p,i)=>{ run[i]+=r.final[i];
+        const fell=(i===r.caller && !r.passed && r.final[i]===0);
+        return '<td'+(fell?' class="fell"':'')+'>'+(h.caller===i?'📢':'')+(fell?'—':r.final[i])+'<small>'+run[i]+'</small></td>'; }).join('')+'</tr>'; });
+    html+='</tbody><tfoot><tr><td></td>'+run.map((v,i)=>'<td style="color:'+CSSACC[ACC[i]]+'">'+(win&&win.idx===i?'🏆 ':'')+v+'</td>').join('')+'</tr></tfoot>';
+    tb.innerHTML=html; b.appendChild(tb);
+    b.appendChild(el('p','small muted','📢 = zvao adut · — = pao · mali broj = zbroj do te ruke'));
+  }, f=>{
+    const del=el('button','btn danger','🗑 Obriši');
+    del.onclick=()=>{ if(!confirm('Obrisati ovu igru iz povijesti?')) return;
+      DB.games=DB.games.filter(x=>x!==g); if(g===S){ S=null; DB.current=null; }
+      persist(); closeSheet(); render(); toast('Igra obrisana'); };
+    const op=el('button','btn primary block', g===S ? '▶︎ Na igru' : (win ? '✎ Otvori igru' : '▶︎ Nastavi igru'));
+    op.onclick=()=>openGame(g.id);
+    f.appendChild(del); f.appendChild(op);
+  });
+}
+function openGame(id){
+  const g=DB.games.find(x=>x.id===id); if(!g) return;
+  if(g!==S) dropEmptyCurrent();
+  S=g; DB.current=g.id; setupDraft=null; view='game';
+  persist(); closeSheet(); render();
+}
+
+/* ---------- izvoz / uvoz (sigurnosna kopija) ---------- */
+function exportData(){
+  const blob=new Blob([JSON.stringify(DB)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='belot-blok-'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  toast('Izvezeno '+DB.games.length+' '+plural(DB.games.length,['igra','igre','igara']));
+}
+function importData(file){
+  const rd=new FileReader();
+  rd.onload=()=>{
+    let d; try{ d=JSON.parse(rd.result); }catch(e){ d=null; }
+    if(!d || !Array.isArray(d.games) || !Array.isArray(d.players) || !Array.isArray(d.teams)){ toast('Neispravna datoteka'); return; }
+    if(!confirm('Zamijeniti SVE postojeće podatke uvezenima? ('+d.games.length+' igara, '+d.players.length+' igrača)')) return;
+    DB=d; S=DB.games.find(g=>g.id===DB.current)||null; setupDraft=null;
+    persist(); render(); toast('Podaci uvezeni');
+  };
+  rd.readAsText(file);
 }
 
 /* ============================ SHEETS / UI PLUMBING ============================ */
@@ -890,8 +1468,17 @@ $('dealerClose').onclick=closeSheet;
 $('dealerRandom').onclick=()=>{ const k=S.seats.length, r=Math.floor(Math.random()*k); setCurrentDealer(r); closeSheet(); render(); toast('Dijeli: '+S.seats[r]+' 🃏'); };
 
 $('mNew').onclick=()=>{ closeSheet(); startNewGame(); };
-$('mRematch').onclick=()=>{ const pref=S?{mode:S.mode,target:S.target,rules:S.rules,parties:S.parties,seats:S.seats}:null; closeSheet(); startNewGame(pref); };
-$('mReset').onclick=()=>{ if(confirm('Poništiti trenutnu igru i sve unesene ruke?')){ localStorage.removeItem(LS_KEY); S=null; closeSheet(); startNewGame(); toast('Igra poništena'); } };
+$('mRematch').onclick=doRematch;
+$('mReset').onclick=()=>{ if(S && confirm('Poništiti trenutnu igru i sve unesene ruke? Igra se briše i iz povijesti.')){ DB.games=DB.games.filter(g=>g!==S); DB.current=null; S=null; persist(); closeSheet(); startNewGame(); toast('Igra poništena'); } };
+$('btnStats').onclick=()=>{ closeSheet(); view = view==='stats' ? 'game' : 'stats'; window.scrollTo(0,0); render(); };
+$('mStats').onclick=()=>{ closeSheet(); view='stats'; render(); };
+$('statsBack').onclick=()=>{ view='game'; window.scrollTo(0,0); render(); };
+document.querySelectorAll('#statsTabs .tab').forEach(t=>t.onclick=()=>{ statsTab=t.dataset.tab; render(); });
+document.querySelectorAll('#statsMode .opt').forEach(o=>o.onclick=()=>{ statsMode=+o.dataset.m; render(); });
+$('infoClose').onclick=closeSheet;
+$('mExport').onclick=()=>{ closeSheet(); exportData(); };
+$('mImport').onclick=()=>$('importFile').click();
+$('importFile').onchange=e=>{ const f=e.target.files[0]; e.target.value=''; if(f){ closeSheet(); importData(f); } };
 $('mInstall').onclick=async()=>{ closeSheet(); if(deferredPrompt){ deferredPrompt.prompt(); const {outcome}=await deferredPrompt.userChoice; deferredPrompt=null; if(outcome!=='accepted') toast('Instalaciju možeš pokrenuti kasnije iz izbornika'); } else { toast('Otvori u Chrome/Safari izborniku: "Dodaj na početni zaslon"'); } };
 
 window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); deferredPrompt=e; });
