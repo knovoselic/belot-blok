@@ -1,0 +1,11 @@
+{
+  "name": "belot-blok",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node tests/e2e.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.58.2"
+  }
+}

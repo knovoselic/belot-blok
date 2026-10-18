@@ -12,3 +12,12 @@ Jednostavan PWA blok za belot — bodovi i zvanja bez greške. Cijela aplikacija
 
 ## Pokretanje
 Otvori `index.html` u pregledniku, ili posjeti hostanu verziju (GitHub Pages).
+
+## Testovi
+End-to-end test u pravom Chromiumu (Playwright, bez mockova): unos igara i ruku, igrači/timovi, statistika, povijest, izvoz/uvoz, migracija starog formata.
+
+```sh
+npm install
+npx playwright install chromium
+npm test
+```
